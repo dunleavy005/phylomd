@@ -99,25 +99,24 @@ std::vector<arma::cube> ctmc_moments_derivatives_aux(const arma::vec& t,
     arma::cube integrals =
         arma::cube(integrals_mat.begin(), Q.n_rows, Q.n_cols, max_order + 1);
 
-    // Multiply the matrix exponential integrals by the corresponding factorials.
+    // Store the zeroth CTMC moment/derivative (i.e. the transition probability matrix).
+    outp[i].zeros(arma::size(integrals));
+    outp[i].slice(0) = std::move(integrals.slice(0));
+
     for (int j = 1; j < max_order + 1; ++j) {
+      // Multiply the matrix exponential integrals by the corresponding factorials.
       integrals.slice(j) *= factorial(j);
-    }
 
-    if (mode == Mode::MOMENTS) {
-      // Mode 1: MOMENTS
-      outp[i].zeros(arma::size(integrals));
-      outp[i].slice(0) = std::move(integrals.slice(0));
-
-      // Calculate the raw moments using the factorial moments and Stirling numbers.
-      for (int j = 1; j < max_order + 1; ++j) {
+      if (mode == Mode::MOMENTS) {
+        // Mode 1: MOMENTS
+        // Calculate the raw moments using the factorial moments and Stirling numbers.
         for (int k = 1; k < j + 1; ++k) {
           outp[i].slice(j) += integrals.slice(k) * stirling_num(j, k);
         }
+      } else {
+        // Mode 2: DERIVATIVES
+        outp[i].slice(j) = std::move(integrals.slice(j));
       }
-    } else {
-      // Mode 2: DERIVATIVES
-      outp[i] = std::move(integrals);
     }
   }
 
