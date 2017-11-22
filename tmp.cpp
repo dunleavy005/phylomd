@@ -57,13 +57,10 @@ void partition_edge_sets_aux(const VectorVector<int>& edge_sets, int curr_ind,
                              const Vector<int>& curr_set,
                              Vector<PartitionSet>& partition_sets) {
   // 1) If the current partitioned set is empty, we can exit the function.
-  // 1a) Before exiting the function, cache the current partitioned edge set if
-  // its corresponding label is also empty.
-  // 2) Otherwise, the current partitioned set is non-empty.
-  // 3) Furthermore, if we have traversed over all the edge sets, cache the
+  // Otherwise, the current partitioned set is non-empty.
+  // 2) Furthermore, if we have traversed over all the edge sets, cache the
   // current partitioned edge set and exit the function.
   if (curr_set.empty()) {
-    if (curr_label.empty()) partition_sets.emplace_back(curr_label, curr_set);
     return;
   } else if ((std::size_t)curr_ind == edge_sets.size()) {
     partition_sets.emplace_back(curr_label, curr_set);
@@ -111,7 +108,7 @@ Vector<PartitionSet> partition_edge_sets(VectorVector<int>& edge_sets) {
 
   // Create the partitioned edge sets.
   Vector<PartitionSet> partition_sets;
-  partition_sets.reserve(std::pow(2, edge_sets.size()));
+  partition_sets.reserve(std::pow(2, edge_sets.size()) - 1);
   partition_edge_sets_aux(edge_sets, 0, {}, union_set, partition_sets);
 
   return partition_sets;
@@ -151,7 +148,7 @@ void find_list_ids_aux(const Vector<PartitionSet>& psets,
   // Find the next list IDs.
   // (Note: the loop body will not be entered if there are no more list IDs to find.)
   for (int order = curr_id.back().order(); order <= max_order; ++order) {
-    for (std::size_t ps_ind = curr_ps_ind; ps_ind < psets.size() - 1; ++ps_ind) {
+    for (std::size_t ps_ind = curr_ps_ind; ps_ind < psets.size(); ++ps_ind) {
       // Form the next list ID by concatenating the current list ID with the
       // next ID element.
       ListID next_id;
@@ -168,18 +165,16 @@ void find_list_ids_aux(const Vector<PartitionSet>& psets,
 Vector<ListID> find_list_ids(const Vector<PartitionSet>& psets, int max_order) {
   Vector<ListID> ids;
 
+  // Manually create the "empty" list ID (i.e. the partial likelihood list ID).
+  ids.push_back({});
+
   // Start the recursion over the multiple partition sets and orders.
-  // (Note: we exclude the "empty" partition set from consideration here; it is
-  // stored at the end of the partition set vector.)
   for (int order = 1; order <= max_order; ++order) {
-    for (std::size_t ps_ind = 0; ps_ind < psets.size() - 1; ++ps_ind) {
+    for (std::size_t ps_ind = 0; ps_ind < psets.size(); ++ps_ind) {
       find_list_ids_aux(psets, ps_ind, max_order - order,
                         {IDElement(&psets[ps_ind], order)}, ids);
     }
   }
-
-  // Manually create the "empty" list ID (i.e. the partial likelihood list ID).
-  ids.push_back({IDElement(&psets.back(), 0)});
 
   // Sort the list IDs.
   std::sort(ids.begin(), ids.end());
