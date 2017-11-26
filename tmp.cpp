@@ -20,6 +20,9 @@ class PartitionSet {
   PartitionSet(const Vector<int>& label, const Vector<int>& set)
       : label_(label), set_(set) {}
 
+  // This operator is needed for sorting list IDs.
+  bool operator<(const PartitionSet& rhs) const { return label_ < rhs.label_; }
+
   const Vector<int>& label() const { return label_; }
   const Vector<int>& set() const { return set_; }
 };
@@ -36,7 +39,7 @@ class IDElement {
 
   // This operator is needed for sorting list IDs.
   bool operator<(const IDElement& rhs) const {
-    return std::tie(pset_, order_) < std::tie(rhs.pset_, rhs.order_);
+    return std::tie(*pset_, order_) < std::tie(*rhs.pset_, rhs.order_);
   }
 
   const PartitionSet& pset() const { return *pset_; }
