@@ -215,16 +215,27 @@ int print_list_ids(VectorVector<int> edge_sets, int max_order) {
   Vector<ListID> ids = find_list_ids(psets, max_order);
 
   for (std::size_t i = 0; i < ids.size(); ++i) {
-    for (std::size_t j = 0; j < ids[i].size(); ++j) {
+    Rcpp::Rcout << "<";
+    for (std::size_t j = 0; j < ids[i].elems().size(); ++j) {
       Rcpp::Rcout << "[(";
-      for (std::size_t k = 0; k < ids[i][j].pset().label().size(); ++k) {
-        Rcpp::Rcout << ids[i][j].pset().label()[k];
-        if (k < ids[i][j].pset().label().size() - 1) Rcpp::Rcout << ",";
+      for (std::size_t k = 0; k < ids[i].elems()[j].pset().label().size(); ++k) {
+        Rcpp::Rcout << ids[i].elems()[j].pset().label()[k];
+        if (k < ids[i].elems()[j].pset().label().size() - 1) Rcpp::Rcout << ",";
       }
-      Rcpp::Rcout << ")-" << ids[i][j].order() << "]";
-      if (j < ids[i].size() - 1) Rcpp::Rcout << " , ";
+      Rcpp::Rcout << ")-" << ids[i].elems()[j].order() << "]";
+      if (j < ids[i].elems().size() - 1) Rcpp::Rcout << " , ";
     }
-    Rcpp::Rcout << std::endl;
+    Rcpp::Rcout << "> ----- {";
+    for (auto it = ids[i].sum_orders().begin(); it != ids[i].sum_orders().end(); ++it) {
+      Rcpp::Rcout << "(";
+      for (std::size_t j = 0; j < it->first.label().size(); ++j) {
+        Rcpp::Rcout << it->first.label()[j];
+        if (j < it->first.label().size() - 1) Rcpp::Rcout << ",";
+      }
+      Rcpp::Rcout << "):" << it->second;
+      if (std::distance(it, ids[i].sum_orders().end()) > 1) Rcpp::Rcout << " , ";
+    }
+    Rcpp::Rcout << "}" << std::endl;
   }
 
   return ids.size();
