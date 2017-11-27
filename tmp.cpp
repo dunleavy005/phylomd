@@ -49,18 +49,18 @@ class IDElement {
 
 class ListID {
  private:
-  Vector<IDElement> id_elems_;
+  Vector<IDElement> elems_;
   std::map<PartitionSet, int> sum_orders_;
 
  public:
-  ListID(const Vector<IDElement>& id_elems,
+  ListID(const Vector<IDElement>& elems,
          const std::map<PartitionSet, int>& sum_orders)
-      : id_elems_(id_elems), sum_orders_(sum_orders) {}
+      : elems_(elems), sum_orders_(sum_orders) {}
 
   // This operator is needed for sorting list IDs.
-  bool operator<(const ListID& rhs) const { return id_elems_ < rhs.id_elems_; }
+  bool operator<(const ListID& rhs) const { return elems_ < rhs.elems_; }
 
-  const Vector<IDElement>& id_elems() const { return id_elems_; }
+  const Vector<IDElement>& elems() const { return elems_; }
   const std::map<PartitionSet, int>& sum_orders() const { return sum_orders_; }
 };
 
@@ -160,23 +160,30 @@ int print_part_sets(VectorVector<int> edge_sets) {
 
 void find_list_ids_aux(const Vector<PartitionSet>& psets,
                        std::size_t curr_ps_ind, int max_order,
-                       const ListID& curr_id, Vector<ListID>& ids) {
+                       const Vector<IDElement>& curr_elems,
+                       const std::map<PartitionSet, int>& curr_sum_orders,
+                       Vector<ListID>& ids) {
   // Cache the current list ID.
-  ids.push_back(curr_id);
+  ids.emplace_back(curr_elems, curr_sum_orders);
 
   // Find the next list IDs.
   // (Note: the loop body will not be entered if there are no more list IDs to find.)
-  for (int order = curr_id.back().order(); order <= max_order; ++order) {
+  for (int order = curr_elems.back().order(); order <= max_order; ++order) {
     for (std::size_t ps_ind = curr_ps_ind; ps_ind < psets.size(); ++ps_ind) {
-      // Form the next list ID by concatenating the current list ID with the
-      // next ID element.
-      ListID next_id;
-      next_id.reserve(curr_id.size() + 1);
-      next_id.insert(next_id.end(), curr_id.begin(), curr_id.end());
-      next_id.emplace_back(&psets[ps_ind], order);
+      // Form the next list ID by concatenating the current list ID elements
+      // with the next ID element and creating a new sum-order map by updating
+      // the current one.
+      Vector<IDElement> next_elems;
+      next_elems.reserve(curr_elems.size() + 1);
+      next_elems.insert(next_elems.end(), curr_elems.begin(), curr_elems.end());
+      next_elems.emplace_back(&psets[ps_ind], order);
+
+      std::map<PartitionSet, int> next_sum_orders = curr_sum_orders;
+      auto insert_results = next_sum_orders.emplace(psets[ps_ind], order);
+      if (!insert_results.second) insert_results.first->second += order;
 
       // Recurse over the next possible ID elements.
-      find_list_ids_aux(psets, ps_ind, max_order - order, next_id, ids);
+      find_list_ids_aux(psets, ps_ind, max_order - order, next_elems, next_sum_orders, ids);
     }
   }
 }
@@ -185,13 +192,14 @@ Vector<ListID> find_list_ids(const Vector<PartitionSet>& psets, int max_order) {
   Vector<ListID> ids;
 
   // Manually create the "empty" list ID (i.e. the partial likelihood list ID).
-  ids.push_back({});
+  ids.emplace_back(Vector<IDElement>(), std::map<PartitionSet, int>());
 
   // Start the recursion over the multiple partition sets and orders.
   for (int order = 1; order <= max_order; ++order) {
     for (std::size_t ps_ind = 0; ps_ind < psets.size(); ++ps_ind) {
       find_list_ids_aux(psets, ps_ind, max_order - order,
-                        {IDElement(&psets[ps_ind], order)}, ids);
+                        {IDElement(&psets[ps_ind], order)},
+                        {{psets[ps_ind], order}}, ids);
     }
   }
 
