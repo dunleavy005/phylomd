@@ -47,7 +47,23 @@ class IDElement {
 };
 
 
-typedef Vector<IDElement> ListID;
+class ListID {
+ private:
+  Vector<IDElement> id_elems_;
+  std::map<PartitionSet, int> sum_orders_;
+
+ public:
+  ListID(const Vector<IDElement>& id_elems,
+         const std::map<PartitionSet, int>& sum_orders)
+      : id_elems_(id_elems), sum_orders_(sum_orders) {}
+
+  // This operator is needed for sorting list IDs.
+  bool operator<(const ListID& rhs) const { return id_elems_ < rhs.id_elems_; }
+
+  const Vector<IDElement>& id_elems() const { return id_elems_; }
+  const std::map<PartitionSet, int>& sum_orders() const { return sum_orders_; }
+};
+
 
 
 
