@@ -96,8 +96,7 @@ std::vector<arma::cube> ctmc_moments_derivatives_aux(const arma::vec& t,
     // Compute the matrix exponential integrals.
     // See (Van Loan, 1978) for an expression of the matrix exponential `exp(A * t(i))`.
     arma::mat integrals_mat = arma::expmat(A * t(i)).eval().head_rows(Q.n_rows);
-    arma::cube integrals =
-        arma::cube(integrals_mat.begin(), Q.n_rows, Q.n_cols, max_order + 1);
+    arma::cube integrals(integrals_mat.begin(), Q.n_rows, Q.n_cols, max_order + 1);
 
     // Store the zeroth CTMC moment/derivative (i.e. the transition probability matrix).
     outp[i].zeros(arma::size(integrals));
