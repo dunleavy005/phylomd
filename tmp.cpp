@@ -22,6 +22,8 @@ class PartitionSet {
 
   // This operator is needed for sum-order map indexing within a given list ID.
   bool operator<(const PartitionSet& rhs) const { return label_ < rhs.label_; }
+  // This operator is needed for finding unique ID elements in edge list IDs.
+  bool operator==(const PartitionSet& rhs) const { return label_ == rhs.label_; }
 
   const Vector<int>& label() const { return label_; }
   const Vector<int>& set() const { return set_; }
@@ -40,6 +42,10 @@ class IDElement {
   // This operator is needed for sorting list IDs.
   bool operator<(const IDElement& rhs) const {
     return std::tie(*pset_, order_) < std::tie(*rhs.pset_, rhs.order_);
+  }
+  // This operator is needed for finding unique ID elements in edge list IDs.
+  bool operator==(const IDElement& rhs) const {
+    return std::tie(*pset_, order_) == std::tie(*rhs.pset_, rhs.order_);
   }
 
   const PartitionSet& pset() const { return *pset_; }
