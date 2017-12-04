@@ -93,17 +93,17 @@ void partition_edge_sets_aux(const VectorVector<int>& edge_sets, int curr_ind,
   intersect_label.insert(intersect_label.end(), curr_label.begin(), curr_label.end());
   intersect_label.emplace_back(curr_ind);
 
-  Vector<int> intersect_set(curr_set.size());
-  auto end_it = std::set_intersection(
-      curr_set.begin(), curr_set.end(), edge_sets[curr_ind].begin(),
-      edge_sets[curr_ind].end(), intersect_set.begin());
-  intersect_set.resize(end_it - intersect_set.begin());
+  Vector<int> intersect_set;
+  intersect_set.reserve(curr_set.size());
+  std::set_intersection(curr_set.begin(), curr_set.end(),
+                        edge_sets[curr_ind].begin(), edge_sets[curr_ind].end(),
+                        std::back_inserter(intersect_set));
 
-  Vector<int> diff_set(curr_set.size());
-  end_it = std::set_difference(curr_set.begin(), curr_set.end(),
-                               edge_sets[curr_ind].begin(),
-                               edge_sets[curr_ind].end(), diff_set.begin());
-  diff_set.resize(end_it - diff_set.begin());
+  Vector<int> diff_set;
+  diff_set.reserve(curr_set.size());
+  std::set_difference(curr_set.begin(), curr_set.end(),
+                      edge_sets[curr_ind].begin(), edge_sets[curr_ind].end(),
+                      std::back_inserter(diff_set));
 
   // Recurse over the next edge set.
   ++curr_ind;
