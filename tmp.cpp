@@ -73,6 +73,42 @@ class ListID {
 };
 
 
+// class NodeList {
+//  private:
+//    ListID id_;
+//
+//  public:
+//
+//};
+
+
+class EdgeList {
+ private:
+  const ListID& id_;
+  // This is a vector of 3-tuples that summarizes the recurrence relation
+  // between this edge list and the node lists.
+  //
+  // For any given edge, the first tuple element represents a possible
+  // assignment of an ID element, the second element contains the corresponding
+  // node list index associated with the child node, and the third element
+  // stores the related counting coefficient.
+  Vector<std::tuple<const IDElement&, int, int>> recursion_info_;
+
+  Vector<std::tuple<const IDElement&, int, int>> init_recursion_info(
+      const ListID& id, const Vector<ListID>& list_ids,
+      const arma::mat& choose) const;
+
+ public:
+  EdgeList(const ListID& id, const Vector<ListID>& list_ids,
+           const arma::mat& choose)
+      : id_(id), recursion_info_(init_recursion_info(id, list_ids, choose)) {}
+
+  const ListID& id() const { return id_; }
+  const Vector<std::tuple<const IDElement&, int, int>>& recursion_info() const {
+    return recursion_info_;
+  }
+};
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -248,6 +284,53 @@ int print_list_ids(VectorVector<int> edge_sets, int max_order) {
 
   return ids.size();
 }
+
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////// EDGE LISTS /////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+Vector<std::tuple<const IDElement&, int, int>> EdgeList::init_recursion_info(
+    const ListID& id, const Vector<ListID>& list_ids,
+    const arma::mat& choose) const {
+  Vector<std::tuple<const IDElement&, int, int>> recursion_info;
+  recursion_info.reserve(id.elems().size() + 1);
+
+  // Loop through the unique ID elements in the edge list ID and cache the
+  // corresponding recursion information 3-tuples.
+  for (auto curr_it = id.elems().begin(); curr_it != id.elems().end();) {
+    // Determine the node list ID elements associated with the child node.
+    Vector<IDElement> node_list_id_elems;
+    node_list_id_elems.reserve(id.elems().size() - 1);
+
+    for (auto it = id.elems().begin(); it != id.elems().end(); ++it) {
+      // The node list ID elements should not include the current ID element.
+      // (Note: we intentionally compare iterators for equality.)
+      if (it != curr_it) node_list_id_elems.emplace_back(&it->pset(), it->order());
+    }
+
+    // Compute the node list index associated with the child node.
+    auto node_list_id_it = std::lower_bound(
+        list_ids.begin(), list_ids.end(), node_list_id_elems,
+        [](const ListID& left_id, const Vector<IDElement>& right_id_elems) {
+          return left_id.elems() < right_id_elems;
+        });
+    int node_list_ind = node_list_id_it - list_ids.begin();
+
+    // Cache the current recursion information 3-tuple.
+    const IDElement& curr_id_elem = *curr_it;
+    int choose_coef = choose(id.sum_orders().at(curr_it->pset()), curr_it->order());
+    recursion_info.emplace_back(curr_id_elem, node_list_ind, choose_coef);
+
+    // Find the next unique ID element in the edge list ID.
+    curr_it = std::find_if_not(++curr_it, id.elems().end(),
+                               [&curr_id_elem](const IDElement& id_elem) {
+                                 return id_elem == curr_id_elem;
+                               });
+  }
+
+  return recursion_info;
+}
+
 
 
 
