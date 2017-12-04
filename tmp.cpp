@@ -55,7 +55,9 @@ class ListID {
  public:
   ListID(const Vector<IDElement>& elems,
          const std::map<PartitionSet, int>& sum_orders)
-      : elems_(elems), sum_orders_(sum_orders) {}
+      : elems_(elems), sum_orders_(sum_orders) {
+    std::sort(elems_.begin(), elems_.end());
+  }
 
   // This operator is needed for sorting list IDs.
   bool operator<(const ListID& rhs) const { return elems_ < rhs.elems_; }
