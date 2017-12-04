@@ -136,7 +136,7 @@ Vector<PartitionSet> partition_edge_sets(VectorVector<int>& edge_sets) {
 }
 
 // [[Rcpp::export]]
-int print_part_sets(VectorVector<int> edge_sets) {
+int print_partition_sets(VectorVector<int> edge_sets) {
   Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
 
   for (std::size_t i = 0; i < psets.size(); ++i) {
@@ -217,7 +217,7 @@ int print_list_ids(VectorVector<int> edge_sets, int max_order) {
   Vector<ListID> ids = find_list_ids(psets, max_order);
 
   for (std::size_t i = 0; i < ids.size(); ++i) {
-    Rcpp::Rcout << "<";
+    Rcpp::Rcout << "< ";
     for (std::size_t j = 0; j < ids[i].elems().size(); ++j) {
       Rcpp::Rcout << "[(";
       for (std::size_t k = 0; k < ids[i].elems()[j].pset().label().size(); ++k) {
@@ -227,7 +227,7 @@ int print_list_ids(VectorVector<int> edge_sets, int max_order) {
       Rcpp::Rcout << ")-" << ids[i].elems()[j].order() << "]";
       if (j < ids[i].elems().size() - 1) Rcpp::Rcout << " , ";
     }
-    Rcpp::Rcout << "> ----- {";
+    Rcpp::Rcout << " > ----- {";
     for (auto it = ids[i].sum_orders().begin(); it != ids[i].sum_orders().end(); ++it) {
       Rcpp::Rcout << "(";
       for (std::size_t j = 0; j < it->first.label().size(); ++j) {
