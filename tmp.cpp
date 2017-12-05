@@ -197,10 +197,10 @@ void print_partition_set_entries(const Vector<int>& set) {
 int print_partition_sets(VectorVector<int> edge_sets) {
   Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
 
-  for (std::size_t i = 0; i < psets.size(); ++i) {
-    print_partition_set_label(psets[i].label());
+  for (const auto& pset : psets) {
+    print_partition_set_label(pset.label());
     Rcpp::Rcout << " - ";
-    print_partition_set_entries(psets[i].set());
+    print_partition_set_entries(pset.set());
     Rcpp::Rcout << std::endl;
   }
 
@@ -292,10 +292,10 @@ int print_list_ids(VectorVector<int> edge_sets, int max_order) {
   Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
   Vector<ListID> ids = find_list_ids(psets, max_order);
 
-  for (std::size_t i = 0; i < ids.size(); ++i) {
-    print_list_id_elems(ids[i].elems());
+  for (const auto& id : ids) {
+    print_list_id_elems(id.elems());
     Rcpp::Rcout << " ----- ";
-    print_list_id_sum_orders(ids[i].sum_orders());
+    print_list_id_sum_orders(id.sum_orders());
     Rcpp::Rcout << std::endl;
   }
 
@@ -349,20 +349,21 @@ Vector<std::tuple<const IDElement&, int, int>> EdgeList::init_recursion_info(
 }
 
 // [[Rcpp::export]]
-int print_elist_recursion_info(VectorVector<int> edge_sets, int max_order, int index) {
+int print_elist_recursion_info(VectorVector<int> edge_sets, int max_order,
+                               int elist_ind) {
   Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
   Vector<ListID> ids = find_list_ids(psets, max_order);
   arma::mat choose = choose_table(max_order);
-  EdgeList elist(ids[index], ids, choose);
+  EdgeList elist(ids[elist_ind], ids, choose);
 
   Rcpp::Rcout << "List ID Elements: ";
-  print_list_id_elems(ids[index].elems());
+  print_list_id_elems(ids[elist_ind].elems());
   Rcpp::Rcout << "\n" << std::endl;
 
-  for (std::size_t i = 0; i < elist.recursion_info().size(); ++i) {
-    const IDElement& id_elem = std::get<0>(elist.recursion_info()[i]);
-    int node_list_ind = std::get<1>(elist.recursion_info()[i]);
-    int choose_coef = std::get<2>(elist.recursion_info()[i]);
+  for (const auto& tup : elist.recursion_info()) {
+    const IDElement& id_elem = std::get<0>(tup);
+    int node_list_ind = std::get<1>(tup);
+    int choose_coef = std::get<2>(tup);
 
     print_id_element(id_elem);
     Rcpp::Rcout << " ----- ";
