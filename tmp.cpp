@@ -293,7 +293,7 @@ Vector<std::tuple<const IDElement&, int, int>> EdgeList::init_recursion_info(
     const ListID& id, const Vector<ListID>& list_ids,
     const arma::mat& choose) const {
   Vector<std::tuple<const IDElement&, int, int>> recursion_info;
-  recursion_info.reserve(id.elems().size() + 1);
+  recursion_info.reserve(id.elems().size());
 
   // Loop through the unique ID elements in the edge list ID and cache the
   // corresponding recursion information 3-tuples.
@@ -331,7 +331,52 @@ Vector<std::tuple<const IDElement&, int, int>> EdgeList::init_recursion_info(
   return recursion_info;
 }
 
+// [[Rcpp::export]]
+int print_edge_list_recursion_info(VectorVector<int> edge_sets, int max_order,
+                                   int list_ind) {
+  Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
+  Vector<ListID> ids = find_list_ids(psets, max_order);
+  arma::mat choose = choose_table(max_order);
+  EdgeList edge_list(ids[list_ind], ids, choose);
 
+  Rcpp::Rcout << "List ID: < ";
+  for (std::size_t i = 0; i < ids[list_ind].elems().size(); ++i) {
+    Rcpp::Rcout << "[(";
+    for (std::size_t j = 0; j < ids[list_ind].elems()[i].pset().label().size(); ++j) {
+      Rcpp::Rcout << ids[list_ind].elems()[i].pset().label()[j];
+      if (j < ids[list_ind].elems()[i].pset().label().size() - 1) Rcpp::Rcout << ",";
+    }
+    Rcpp::Rcout << ")-" << ids[list_ind].elems()[i].order() << "]";
+    if (i < ids[list_ind].elems().size() - 1) Rcpp::Rcout << " , ";
+  }
+  Rcpp::Rcout << " >\n" << std::endl;
+
+  for (auto it = edge_list.recursion_info().begin();
+       it != edge_list.recursion_info().end(); ++it) {
+    const IDElement& id_elem = std::get<0>(*it);
+    Rcpp::Rcout << "[(";
+    for (std::size_t i = 0; i < id_elem.pset().label().size(); ++i) {
+      Rcpp::Rcout << id_elem.pset().label()[i];
+      if (i < id_elem.pset().label().size() - 1) Rcpp::Rcout << ",";
+    }
+    Rcpp::Rcout << ")-" << id_elem.order() << "] ----- < ";
+
+    int node_list_ind = std::get<1>(*it);
+    int choose_coef = std::get<2>(*it);
+    for (std::size_t i = 0; i < ids[node_list_ind].elems().size(); ++i) {
+      Rcpp::Rcout << "[(";
+      for (std::size_t j = 0; j < ids[node_list_ind].elems()[i].pset().label().size(); ++j) {
+        Rcpp::Rcout << ids[node_list_ind].elems()[i].pset().label()[j];
+        if (j < ids[node_list_ind].elems()[i].pset().label().size() - 1) Rcpp::Rcout << ",";
+      }
+      Rcpp::Rcout << ")-" << ids[node_list_ind].elems()[i].order() << "]";
+      if (i < ids[node_list_ind].elems().size() - 1) Rcpp::Rcout << " , ";
+    }
+    Rcpp::Rcout << " > ----- " << choose_coef << std::endl;
+  }
+
+  return edge_list.recursion_info().size();
+}
 
 
 
