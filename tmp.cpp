@@ -177,21 +177,30 @@ Vector<PartitionSet> partition_edge_sets(VectorVector<int>& edge_sets) {
   return partition_sets;
 }
 
+void print_partition_set_label(const Vector<int>& label) {
+  Rcpp::Rcout << "(";
+  for (std::size_t i = 0; i < label.size(); ++i) {
+    Rcpp::Rcout << label[i];
+    if (i < label.size() - 1) Rcpp::Rcout << ",";
+  }
+  Rcpp::Rcout << ")";
+}
+
+void print_partition_set_entries(const Vector<int>& set) {
+  for (std::size_t i = 0; i < set.size(); ++i) {
+    Rcpp::Rcout << set[i];
+    if (i < set.size() - 1) Rcpp::Rcout << ",";
+  }
+}
+
 // [[Rcpp::export]]
 int print_partition_sets(VectorVector<int> edge_sets) {
   Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
 
   for (std::size_t i = 0; i < psets.size(); ++i) {
-    Rcpp::Rcout << "(";
-    for (std::size_t j = 0; j < psets[i].label().size(); ++j) {
-      Rcpp::Rcout << psets[i].label()[j];
-      if (j < psets[i].label().size() - 1) Rcpp::Rcout << ",";
-    }
-    Rcpp::Rcout << ") - ";
-    for (std::size_t j = 0; j < psets[i].set().size(); ++j) {
-      Rcpp::Rcout << psets[i].set()[j];
-      if (j < psets[i].set().size() - 1) Rcpp::Rcout << ",";
-    }
+    print_partition_set_label(psets[i].label());
+    Rcpp::Rcout << " - ";
+    print_partition_set_entries(psets[i].set());
     Rcpp::Rcout << std::endl;
   }
 
@@ -253,33 +262,41 @@ Vector<ListID> find_list_ids(const Vector<PartitionSet>& psets, int max_order) {
   return ids;
 }
 
+void print_id_element(const IDElement& id_elem) {
+  Rcpp::Rcout << "[";
+  print_partition_set_label(id_elem.pset().label());
+  Rcpp::Rcout << "-" << id_elem.order() << "]";
+}
+
+void print_list_id_elems(const Vector<IDElement>& id_elems) {
+  Rcpp::Rcout << "< ";
+  for (std::size_t i = 0; i < id_elems.size(); ++i) {
+    print_id_element(id_elems[i]);
+    if (i < id_elems.size() - 1) Rcpp::Rcout << " , ";
+  }
+  Rcpp::Rcout << " >";
+}
+
+void print_list_id_sum_orders(const std::map<PartitionSet, int>& sum_orders) {
+  Rcpp::Rcout << "{";
+  for (auto it = sum_orders.begin(); it != sum_orders.end(); ++it) {
+    print_partition_set_label(it->first.label());
+    Rcpp::Rcout << ":" << it->second;
+    if (std::distance(it, sum_orders.end()) > 1) Rcpp::Rcout << " , ";
+  }
+  Rcpp::Rcout << "}";
+}
+
 // [[Rcpp::export]]
 int print_list_ids(VectorVector<int> edge_sets, int max_order) {
   Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
   Vector<ListID> ids = find_list_ids(psets, max_order);
 
   for (std::size_t i = 0; i < ids.size(); ++i) {
-    Rcpp::Rcout << "< ";
-    for (std::size_t j = 0; j < ids[i].elems().size(); ++j) {
-      Rcpp::Rcout << "[(";
-      for (std::size_t k = 0; k < ids[i].elems()[j].pset().label().size(); ++k) {
-        Rcpp::Rcout << ids[i].elems()[j].pset().label()[k];
-        if (k < ids[i].elems()[j].pset().label().size() - 1) Rcpp::Rcout << ",";
-      }
-      Rcpp::Rcout << ")-" << ids[i].elems()[j].order() << "]";
-      if (j < ids[i].elems().size() - 1) Rcpp::Rcout << " , ";
-    }
-    Rcpp::Rcout << " > ----- {";
-    for (auto it = ids[i].sum_orders().begin(); it != ids[i].sum_orders().end(); ++it) {
-      Rcpp::Rcout << "(";
-      for (std::size_t j = 0; j < it->first.label().size(); ++j) {
-        Rcpp::Rcout << it->first.label()[j];
-        if (j < it->first.label().size() - 1) Rcpp::Rcout << ",";
-      }
-      Rcpp::Rcout << "):" << it->second;
-      if (std::distance(it, ids[i].sum_orders().end()) > 1) Rcpp::Rcout << " , ";
-    }
-    Rcpp::Rcout << "}" << std::endl;
+    print_list_id_elems(ids[i].elems());
+    Rcpp::Rcout << " ----- ";
+    print_list_id_sum_orders(ids[i].sum_orders());
+    Rcpp::Rcout << std::endl;
   }
 
   return ids.size();
@@ -332,50 +349,29 @@ Vector<std::tuple<const IDElement&, int, int>> EdgeList::init_recursion_info(
 }
 
 // [[Rcpp::export]]
-int print_edge_list_recursion_info(VectorVector<int> edge_sets, int max_order,
-                                   int list_ind) {
+int print_elist_recursion_info(VectorVector<int> edge_sets, int max_order, int index) {
   Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
   Vector<ListID> ids = find_list_ids(psets, max_order);
   arma::mat choose = choose_table(max_order);
-  EdgeList edge_list(ids[list_ind], ids, choose);
+  EdgeList elist(ids[index], ids, choose);
 
-  Rcpp::Rcout << "List ID: < ";
-  for (std::size_t i = 0; i < ids[list_ind].elems().size(); ++i) {
-    Rcpp::Rcout << "[(";
-    for (std::size_t j = 0; j < ids[list_ind].elems()[i].pset().label().size(); ++j) {
-      Rcpp::Rcout << ids[list_ind].elems()[i].pset().label()[j];
-      if (j < ids[list_ind].elems()[i].pset().label().size() - 1) Rcpp::Rcout << ",";
-    }
-    Rcpp::Rcout << ")-" << ids[list_ind].elems()[i].order() << "]";
-    if (i < ids[list_ind].elems().size() - 1) Rcpp::Rcout << " , ";
-  }
-  Rcpp::Rcout << " >\n" << std::endl;
+  Rcpp::Rcout << "List ID Elements: ";
+  print_list_id_elems(ids[index].elems());
+  Rcpp::Rcout << "\n" << std::endl;
 
-  for (auto it = edge_list.recursion_info().begin();
-       it != edge_list.recursion_info().end(); ++it) {
-    const IDElement& id_elem = std::get<0>(*it);
-    Rcpp::Rcout << "[(";
-    for (std::size_t i = 0; i < id_elem.pset().label().size(); ++i) {
-      Rcpp::Rcout << id_elem.pset().label()[i];
-      if (i < id_elem.pset().label().size() - 1) Rcpp::Rcout << ",";
-    }
-    Rcpp::Rcout << ")-" << id_elem.order() << "] ----- < ";
+  for (std::size_t i = 0; i < elist.recursion_info().size(); ++i) {
+    const IDElement& id_elem = std::get<0>(elist.recursion_info()[i]);
+    int node_list_ind = std::get<1>(elist.recursion_info()[i]);
+    int choose_coef = std::get<2>(elist.recursion_info()[i]);
 
-    int node_list_ind = std::get<1>(*it);
-    int choose_coef = std::get<2>(*it);
-    for (std::size_t i = 0; i < ids[node_list_ind].elems().size(); ++i) {
-      Rcpp::Rcout << "[(";
-      for (std::size_t j = 0; j < ids[node_list_ind].elems()[i].pset().label().size(); ++j) {
-        Rcpp::Rcout << ids[node_list_ind].elems()[i].pset().label()[j];
-        if (j < ids[node_list_ind].elems()[i].pset().label().size() - 1) Rcpp::Rcout << ",";
-      }
-      Rcpp::Rcout << ")-" << ids[node_list_ind].elems()[i].order() << "]";
-      if (i < ids[node_list_ind].elems().size() - 1) Rcpp::Rcout << " , ";
-    }
-    Rcpp::Rcout << " > ----- " << choose_coef << std::endl;
+    print_id_element(id_elem);
+    Rcpp::Rcout << " ----- ";
+    print_list_id_elems(ids[node_list_ind].elems());
+    Rcpp::Rcout << " ----- ";
+    Rcpp::Rcout << choose_coef << std::endl;
   }
 
-  return edge_list.recursion_info().size();
+  return elist.recursion_info().size();
 }
 
 
