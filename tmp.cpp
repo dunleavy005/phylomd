@@ -22,7 +22,7 @@ class PartitionSet {
 
   // This operator is needed for sum-order map indexing within a given list ID.
   bool operator<(const PartitionSet& rhs) const { return label_ < rhs.label_; }
-  // This operator is needed for finding unique ID elements in edge list IDs.
+  // This operator is needed for finding unique ID elements in list IDs.
   bool operator==(const PartitionSet& rhs) const { return label_ == rhs.label_; }
 
   const Vector<int>& label() const { return label_; }
@@ -43,7 +43,7 @@ class IDElement {
   bool operator<(const IDElement& rhs) const {
     return std::tie(*pset_, order_) < std::tie(*rhs.pset_, rhs.order_);
   }
-  // This operator is needed for finding unique ID elements in edge list IDs.
+  // This operator is needed for finding unique ID elements in list IDs.
   bool operator==(const IDElement& rhs) const {
     return std::tie(*pset_, order_) == std::tie(*rhs.pset_, rhs.order_);
   }
@@ -67,8 +67,15 @@ class ListID {
 
   // This operator is needed for sorting list IDs.
   bool operator<(const ListID& rhs) const { return elems_ < rhs.elems_; }
+  // This operator is needed for finding list ID indices.
+  bool operator<(const Vector<IDElement>& rhs) const { return elems_ < rhs; }
 
-  const Vector<IDElement>& elems() const { return elems_; }
+  typedef Vector<IDElement>::const_iterator const_iterator;
+  const_iterator begin() const { return elems_.begin(); }
+  const_iterator end() const { return elems_.end(); }
+  const IDElement& operator[](int i) const { return elems_[i]; }
+  std::size_t size() const { return elems_.size(); }
+
   const std::map<PartitionSet, int>& sum_orders() const { return sum_orders_; }
 };
 
@@ -196,19 +203,19 @@ Vector<PartitionSet> partition_edge_sets(VectorVector<int>& edge_sets) {
   return partition_sets;
 }
 
-void print_partition_set_label(const Vector<int>& label) {
+void print_partition_set_label(const PartitionSet& pset) {
   Rcpp::Rcout << "(";
-  for (std::size_t i = 0; i < label.size(); ++i) {
-    Rcpp::Rcout << label[i];
-    if (i < label.size() - 1) Rcpp::Rcout << ",";
+  for (std::size_t i = 0; i < pset.label().size(); ++i) {
+    Rcpp::Rcout << pset.label()[i];
+    if (i < pset.label().size() - 1) Rcpp::Rcout << ",";
   }
   Rcpp::Rcout << ")";
 }
 
-void print_partition_set_entries(const Vector<int>& set) {
-  for (std::size_t i = 0; i < set.size(); ++i) {
-    Rcpp::Rcout << set[i];
-    if (i < set.size() - 1) Rcpp::Rcout << ",";
+void print_partition_set_entries(const PartitionSet& pset) {
+  for (std::size_t i = 0; i < pset.set().size(); ++i) {
+    Rcpp::Rcout << pset.set()[i];
+    if (i < pset.set().size() - 1) Rcpp::Rcout << ",";
   }
 }
 
@@ -217,9 +224,9 @@ int print_partition_sets(VectorVector<int> edge_sets) {
   Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
 
   for (const auto& pset : psets) {
-    print_partition_set_label(pset.label());
+    print_partition_set_label(pset);
     Rcpp::Rcout << " - ";
-    print_partition_set_entries(pset.set());
+    print_partition_set_entries(pset);
     Rcpp::Rcout << std::endl;
   }
 
@@ -283,25 +290,25 @@ Vector<ListID> find_list_ids(const Vector<PartitionSet>& psets, int max_order) {
 
 void print_id_element(const IDElement& id_elem) {
   Rcpp::Rcout << "[";
-  print_partition_set_label(id_elem.pset().label());
+  print_partition_set_label(id_elem.pset());
   Rcpp::Rcout << "-" << id_elem.order() << "]";
 }
 
-void print_list_id_elems(const Vector<IDElement>& id_elems) {
+void print_list_id_elems(const ListID& id) {
   Rcpp::Rcout << "< ";
-  for (std::size_t i = 0; i < id_elems.size(); ++i) {
-    print_id_element(id_elems[i]);
-    if (i < id_elems.size() - 1) Rcpp::Rcout << " , ";
+  for (std::size_t i = 0; i < id.size(); ++i) {
+    print_id_element(id[i]);
+    if (i < id.size() - 1) Rcpp::Rcout << " , ";
   }
   Rcpp::Rcout << " >";
 }
 
-void print_list_id_sum_orders(const std::map<PartitionSet, int>& sum_orders) {
+void print_list_id_sum_orders(const ListID& id) {
   Rcpp::Rcout << "{";
-  for (auto it = sum_orders.begin(); it != sum_orders.end(); ++it) {
-    print_partition_set_label(it->first.label());
+  for (auto it = id.sum_orders().begin(); it != id.sum_orders().end(); ++it) {
+    print_partition_set_label(it->first);
     Rcpp::Rcout << ":" << it->second;
-    if (std::distance(it, sum_orders.end()) > 1) Rcpp::Rcout << " , ";
+    if (std::distance(it, id.sum_orders().end()) > 1) Rcpp::Rcout << " , ";
   }
   Rcpp::Rcout << "}";
 }
@@ -312,14 +319,15 @@ int print_list_ids(VectorVector<int> edge_sets, int max_order) {
   Vector<ListID> ids = find_list_ids(psets, max_order);
 
   for (const auto& id : ids) {
-    print_list_id_elems(id.elems());
+    print_list_id_elems(id);
     Rcpp::Rcout << " ----- ";
-    print_list_id_sum_orders(id.sum_orders());
+    print_list_id_sum_orders(id);
     Rcpp::Rcout << std::endl;
   }
 
   return ids.size();
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// EDGE LISTS /////////////////////////////////////
@@ -329,39 +337,36 @@ Vector<std::tuple<const IDElement&, int, int>> EdgeList::init_recursion_info(
     const ListID& id, const Vector<ListID>& list_ids,
     const arma::mat& choose) const {
   Vector<std::tuple<const IDElement&, int, int>> recursion_info;
-  recursion_info.reserve(id.elems().size());
+  recursion_info.reserve(id.size());
 
   // Loop through the unique ID elements in the edge list ID and cache the
   // corresponding recursion information 3-tuples.
-  for (auto curr_it = id.elems().begin(); curr_it != id.elems().end();) {
+  for (auto curr_it = id.begin(); curr_it != id.end();) {
     // Determine the node list ID elements associated with the child node.
     Vector<IDElement> node_list_id_elems;
-    node_list_id_elems.reserve(id.elems().size() - 1);
+    node_list_id_elems.reserve(id.size() - 1);
 
-    for (auto it = id.elems().begin(); it != id.elems().end(); ++it) {
+    for (auto it = id.begin(); it != id.end(); ++it) {
       // The node list ID elements should not include the current ID element.
       // (Note: we intentionally compare iterators for equality.)
       if (it != curr_it) node_list_id_elems.emplace_back(&it->pset(), it->order());
     }
 
     // Compute the node list index associated with the child node.
-    auto node_list_id_it = std::lower_bound(
-        list_ids.begin(), list_ids.end(), node_list_id_elems,
-        [](const ListID& left_id, const Vector<IDElement>& right_id_elems) {
-          return left_id.elems() < right_id_elems;
-        });
+    auto node_list_id_it =
+        std::lower_bound(list_ids.begin(), list_ids.end(), node_list_id_elems);
     int node_list_ind = node_list_id_it - list_ids.begin();
 
     // Cache the current recursion information 3-tuple.
-    const IDElement& curr_id_elem = *curr_it;
-    int choose_coef = choose(id.sum_orders().at(curr_it->pset()), curr_it->order());
-    recursion_info.emplace_back(curr_id_elem, node_list_ind, choose_coef);
+    recursion_info.emplace_back(
+        *curr_it, node_list_ind,
+        choose(id.sum_orders().at(curr_it->pset()), curr_it->order()));
 
     // Find the next unique ID element in the edge list ID.
-    curr_it = std::find_if_not(++curr_it, id.elems().end(),
-                               [&curr_id_elem](const IDElement& id_elem) {
-                                 return id_elem == curr_id_elem;
-                               });
+    curr_it = std::find_if_not(
+        ++curr_it, id.end(), [&recursion_info](const IDElement& id_elem) {
+          return id_elem == std::get<0>(recursion_info.back());
+        });
   }
 
   return recursion_info;
@@ -376,7 +381,7 @@ int print_elist_recursion_info(VectorVector<int> edge_sets, int max_order,
   EdgeList elist(ids[elist_ind], ids, choose);
 
   Rcpp::Rcout << "List ID Elements: ";
-  print_list_id_elems(ids[elist_ind].elems());
+  print_list_id_elems(ids[elist_ind]);
   Rcpp::Rcout << "\n" << std::endl;
 
   for (const auto& tup : elist.recursion_info()) {
@@ -386,7 +391,7 @@ int print_elist_recursion_info(VectorVector<int> edge_sets, int max_order,
 
     print_id_element(id_elem);
     Rcpp::Rcout << " ----- ";
-    print_list_id_elems(ids[node_list_ind].elems());
+    print_list_id_elems(ids[node_list_ind]);
     Rcpp::Rcout << " ----- ";
     Rcpp::Rcout << choose_coef << std::endl;
   }
