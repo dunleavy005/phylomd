@@ -73,13 +73,32 @@ class ListID {
 };
 
 
-// class NodeList {
-//  private:
-//    ListID id_;
-//
-//  public:
-//
-//};
+class NodeList {
+ private:
+  const ListID& id_;
+  // This is a vector of 3-tuples that summarizes the recurrence relation
+  // between this node list and the edge lists.
+  //
+  // For any given node, the first tuple element contains the edge list index
+  // associated with the left child edge, the second element represents the edge
+  // list index associated with the right child edge, and the third element
+  // stores the related counting coefficient.
+  Vector<std::tuple<int, int, int>> recursion_info_;
+
+  Vector<std::tuple<int, int, int>> init_recursion_info(
+      const ListID& id, const Vector<ListID>& list_ids,
+      const arma::mat& choose) const;
+
+ public:
+  NodeList(const ListID& id, const Vector<ListID>& list_ids,
+           const arma::mat& choose)
+      : id_(id), recursion_info_(init_recursion_info(id, list_ids, choose)) {}
+
+  const ListID& id() const { return id_; }
+  const Vector<std::tuple<int, int, int>>& recursion_info() const {
+    return recursion_info_;
+  }
+};
 
 
 class EdgeList {
