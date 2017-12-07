@@ -67,7 +67,7 @@ class ListID {
 
   // This operator is needed for sorting list IDs.
   bool operator<(const ListID& rhs) const { return elems_ < rhs.elems_; }
-  // This operator is needed for finding list ID indices.
+  // This operator is needed for querying list IDs.
   bool operator<(const Vector<IDElement>& rhs) const { return elems_ < rhs; }
 
   typedef Vector<IDElement>::const_iterator const_iterator;
