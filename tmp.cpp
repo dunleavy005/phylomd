@@ -160,7 +160,8 @@ void partition_edge_sets_aux(const VectorVector<int>& edge_sets, int curr_ind,
   // the current edge set.
   Vector<int> intersect_label;
   intersect_label.reserve(curr_label.size() + 1);
-  intersect_label.insert(intersect_label.end(), curr_label.begin(), curr_label.end());
+  intersect_label.insert(intersect_label.end(), curr_label.begin(),
+                         curr_label.end());
   intersect_label.emplace_back(curr_ind);
 
   Vector<int> intersect_set;
@@ -177,8 +178,10 @@ void partition_edge_sets_aux(const VectorVector<int>& edge_sets, int curr_ind,
 
   // Recurse over the next edge set.
   ++curr_ind;
-  partition_edge_sets_aux(edge_sets, curr_ind, intersect_label, intersect_set, partition_sets);
-  partition_edge_sets_aux(edge_sets, curr_ind, curr_label, diff_set, partition_sets);
+  partition_edge_sets_aux(edge_sets, curr_ind, intersect_label, intersect_set,
+                          partition_sets);
+  partition_edge_sets_aux(edge_sets, curr_ind, curr_label, diff_set,
+                          partition_sets);
 }
 
 Vector<PartitionSet> partition_edge_sets(VectorVector<int>& edge_sets) {
@@ -197,7 +200,8 @@ Vector<PartitionSet> partition_edge_sets(VectorVector<int>& edge_sets) {
 
   // Create the partitioned edge sets.
   Vector<PartitionSet> partition_sets;
-  partition_sets.reserve(std::pow(2, edge_sets.size()) - 1);
+  partition_sets.reserve(
+      std::min((int)std::pow(2, edge_sets.size()) - 1, (int)union_set.size()));
   partition_edge_sets_aux(edge_sets, 0, {}, union_set, partition_sets);
 
   return partition_sets;
