@@ -10,6 +10,9 @@ using Vector = std::vector<T>;
 template <typename T>
 using VectorVector = std::vector<std::vector<T>>;
 
+template <typename T1, typename T2>
+using Map = std::map<T1, T2>;
+
 
 class PartitionSet {
  private:
@@ -20,63 +23,83 @@ class PartitionSet {
   PartitionSet(const Vector<int>& label, const Vector<int>& set)
       : label_(label), set_(set) {}
 
-  // This operator is needed for sum-order map indexing within a given list ID.
-  bool operator<(const PartitionSet& rhs) const { return label_ < rhs.label_; }
-  // This operator is needed for finding unique ID elements in list IDs.
-  bool operator==(const PartitionSet& rhs) const { return label_ == rhs.label_; }
-
   const Vector<int>& label() const { return label_; }
   const Vector<int>& set() const { return set_; }
 };
 
+// This operator is needed for sum-order map indexing within a given list ID.
+bool operator<(const PartitionSet& lhs, const PartitionSet& rhs) {
+  return lhs.label() < rhs.label();
+}
+// This operator is needed for finding unique ID elements in list IDs.
+bool operator==(const PartitionSet& lhs, const PartitionSet& rhs) {
+  return lhs.label() == rhs.label();
+}
+bool operator>(const PartitionSet& lhs, const PartitionSet& rhs) {
+  return rhs < lhs;
+}
+bool operator<=(const PartitionSet& lhs, const PartitionSet& rhs) {
+  return !(rhs < lhs);
+}
+bool operator>=(const PartitionSet& lhs, const PartitionSet& rhs) {
+  return !(lhs < rhs);
+}
+bool operator!=(const PartitionSet& lhs, const PartitionSet& rhs) {
+  return !(lhs == rhs);
+}
+
 
 class IDElement {
  private:
-  // This class does not "own" the partition set resources.
   const PartitionSet* pset_;
   int order_;
 
  public:
-  IDElement(const PartitionSet* pset, int order) : pset_(pset), order_(order) {}
-
-  // This operator is needed for sorting list IDs.
-  bool operator<(const IDElement& rhs) const {
-    return std::tie(*pset_, order_) < std::tie(*rhs.pset_, rhs.order_);
-  }
-  // This operator is needed for finding unique ID elements in list IDs.
-  bool operator==(const IDElement& rhs) const {
-    return std::tie(*pset_, order_) == std::tie(*rhs.pset_, rhs.order_);
-  }
+  IDElement(const PartitionSet& pset, int order)
+      : pset_(&pset), order_(order) {}
 
   const PartitionSet& pset() const { return *pset_; }
   int order() const { return order_; }
 };
 
+// This operator is needed for sorting list IDs.
+bool operator<(const IDElement& lhs, const IDElement& rhs) {
+  return std::forward_as_tuple(lhs.pset(), lhs.order()) <
+         std::forward_as_tuple(rhs.pset(), rhs.order());
+}
+// This operator is needed for finding unique ID elements in list IDs.
+bool operator==(const IDElement& lhs, const IDElement& rhs) {
+  return std::forward_as_tuple(lhs.pset(), lhs.order()) ==
+         std::forward_as_tuple(rhs.pset(), rhs.order());
+}
+bool operator>(const IDElement& lhs, const IDElement& rhs) { return rhs < lhs; }
+bool operator<=(const IDElement& lhs, const IDElement& rhs) {
+  return !(rhs < lhs);
+}
+bool operator>=(const IDElement& lhs, const IDElement& rhs) {
+  return !(lhs < rhs);
+}
+bool operator!=(const IDElement& lhs, const IDElement& rhs) {
+  return !(lhs == rhs);
+}
+
 
 class ListID {
  private:
   Vector<IDElement> elems_;
-  std::map<PartitionSet, int> sum_orders_;
+  Map<PartitionSet, int> sum_orders_;
 
  public:
   ListID(const Vector<IDElement>& elems,
-         const std::map<PartitionSet, int>& sum_orders)
+         const Map<PartitionSet, int>& sum_orders)
       : elems_(elems), sum_orders_(sum_orders) {
     std::sort(elems_.begin(), elems_.end());
   }
 
-  // This operator is needed for sorting list IDs.
-  bool operator<(const ListID& rhs) const { return elems_ < rhs.elems_; }
-  // This operator is needed for querying list IDs.
-  bool operator<(const Vector<IDElement>& rhs) const { return elems_ < rhs; }
-
   typedef Vector<IDElement>::const_iterator const_iterator;
-  const_iterator begin() const { return elems_.begin(); }
-  const_iterator end() const { return elems_.end(); }
-  const IDElement& operator[](int i) const { return elems_[i]; }
-  std::size_t size() const { return elems_.size(); }
 
-  const std::map<PartitionSet, int>& sum_orders() const { return sum_orders_; }
+  const Vector<IDElement>& elems() const { return elems_; }
+  const Map<PartitionSet, int>& sum_orders() const { return sum_orders_; }
 };
 
 
@@ -137,9 +160,9 @@ class EdgeList {
 
 
 
-///////////////////////////////////////////////////////////////////////////////
-//////////////////////////// PARTITION SETS ///////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////// PARTITION SETS ////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 void partition_edge_sets_aux(const VectorVector<int>& edge_sets, int curr_ind,
                              const Vector<int>& curr_label,
@@ -237,20 +260,21 @@ int print_partition_sets(VectorVector<int> edge_sets) {
   return psets.size();
 }
 
-///////////////////////////////////////////////////////////////////////////////
-//////////////////////////////// LIST IDS /////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// LIST IDS //////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 void find_list_ids_aux(const Vector<PartitionSet>& psets,
                        std::size_t curr_ps_ind, int max_order,
                        const Vector<IDElement>& curr_elems,
-                       const std::map<PartitionSet, int>& curr_sum_orders,
+                       const Map<PartitionSet, int>& curr_sum_orders,
                        Vector<ListID>& ids) {
   // Cache the current list ID.
   ids.emplace_back(curr_elems, curr_sum_orders);
 
   // Find the next list IDs.
-  // (Note: the loop body will not be entered if there are no more list IDs to find.)
+  // (Note: the loop body will not be entered if there are no more list IDs to
+  // find.)
   for (int order = curr_elems.back().order(); order <= max_order; ++order) {
     for (std::size_t ps_ind = curr_ps_ind; ps_ind < psets.size(); ++ps_ind) {
       // Form the next list ID by concatenating the current list ID elements
@@ -259,14 +283,15 @@ void find_list_ids_aux(const Vector<PartitionSet>& psets,
       Vector<IDElement> next_elems;
       next_elems.reserve(curr_elems.size() + 1);
       next_elems.insert(next_elems.end(), curr_elems.begin(), curr_elems.end());
-      next_elems.emplace_back(&psets[ps_ind], order);
+      next_elems.emplace_back(psets[ps_ind], order);
 
-      std::map<PartitionSet, int> next_sum_orders = curr_sum_orders;
+      Map<PartitionSet, int> next_sum_orders = curr_sum_orders;
       auto insert_results = next_sum_orders.emplace(psets[ps_ind], order);
       if (!insert_results.second) insert_results.first->second += order;
 
       // Recurse over the next possible ID elements.
-      find_list_ids_aux(psets, ps_ind, max_order - order, next_elems, next_sum_orders, ids);
+      find_list_ids_aux(psets, ps_ind, max_order - order, next_elems,
+                        next_sum_orders, ids);
     }
   }
 }
@@ -275,19 +300,22 @@ Vector<ListID> find_list_ids(const Vector<PartitionSet>& psets, int max_order) {
   Vector<ListID> ids;
 
   // Manually create the "empty" list ID (i.e. the partial likelihood list ID).
-  ids.emplace_back(Vector<IDElement>(), std::map<PartitionSet, int>());
+  ids.emplace_back(Vector<IDElement>(), Map<PartitionSet, int>());
 
   // Start the recursion over the multiple partition sets and orders.
   for (int order = 1; order <= max_order; ++order) {
     for (std::size_t ps_ind = 0; ps_ind < psets.size(); ++ps_ind) {
       find_list_ids_aux(psets, ps_ind, max_order - order,
-                        {IDElement(&psets[ps_ind], order)},
+                        {IDElement(psets[ps_ind], order)},
                         {{psets[ps_ind], order}}, ids);
     }
   }
 
   // Sort the list IDs.
-  std::sort(ids.begin(), ids.end());
+  std::sort(ids.begin(), ids.end(),
+            [](const ListID& lhs, const ListID& rhs) -> bool {
+              return lhs.elems() < rhs.elems();
+            });
 
   return ids;
 }
@@ -300,9 +328,9 @@ void print_id_element(const IDElement& id_elem) {
 
 void print_list_id_elems(const ListID& id) {
   Rcpp::Rcout << "< ";
-  for (std::size_t i = 0; i < id.size(); ++i) {
-    print_id_element(id[i]);
-    if (i < id.size() - 1) Rcpp::Rcout << " , ";
+  for (std::size_t i = 0; i < id.elems().size(); ++i) {
+    print_id_element(id.elems()[i]);
+    if (i < id.elems().size() - 1) Rcpp::Rcout << " , ";
   }
   Rcpp::Rcout << " >";
 }
