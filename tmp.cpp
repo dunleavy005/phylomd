@@ -313,8 +313,8 @@ Vector<ListID> find_list_ids(const Vector<PartitionSet>& psets, int max_order) {
 
   // Sort the list IDs.
   std::sort(ids.begin(), ids.end(),
-            [](const ListID& lhs, const ListID& rhs) -> bool {
-              return lhs.elems() < rhs.elems();
+            [](const ListID& left_id, const ListID& right_id) -> bool {
+              return left_id.elems() < right_id.elems();
             });
 
   return ids;
