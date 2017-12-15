@@ -103,34 +103,34 @@ class ListID {
 };
 
 
-class NodeList {
- private:
-  const ListID& id_;
-  // This is a vector of 3-tuples that summarizes the recurrence relation
-  // between this node list and the edge lists.
-  //
-  // For any given node, the first tuple element contains the edge list index
-  // associated with the left child edge, the second element represents the edge
-  // list index associated with the right child edge, and the third element
-  // stores the related counting coefficient.
-  Vector<std::tuple<int, int, int>> recursion_info_;
-
-  Vector<std::tuple<int, int, int>> init_recursion_info(
-      const ListID& id, const Vector<ListID>& list_ids,
-      const arma::mat& choose) const;
-
- public:
-  NodeList(const ListID& id, const Vector<ListID>& list_ids,
-           const arma::mat& choose)
-      : id_(id), recursion_info_(init_recursion_info(id, list_ids, choose)) {}
-
-  const ListID& id() const { return id_; }
-  const Vector<std::tuple<int, int, int>>& recursion_info() const {
-    return recursion_info_;
-  }
-};
-
-
+//class NodeList {
+// private:
+//  const ListID& id_;
+//  // This is a vector of 3-tuples that summarizes the recurrence relation
+//  // between this node list and the edge lists.
+//  //
+//  // For any given node, the first tuple element contains the edge list index
+//  // associated with the left child edge, the second element represents the edge
+//  // list index associated with the right child edge, and the third element
+//  // stores the related counting coefficient.
+//  Vector<std::tuple<int, int, int>> recursion_info_;
+//
+//  Vector<std::tuple<int, int, int>> init_recursion_info(
+//      const ListID& id, const Vector<ListID>& list_ids,
+//      const arma::mat& choose) const;
+//
+// public:
+//  NodeList(const ListID& id, const Vector<ListID>& list_ids,
+//           const arma::mat& choose)
+//      : id_(id), recursion_info_(init_recursion_info(id, list_ids, choose)) {}
+//
+//  const ListID& id() const { return id_; }
+//  const Vector<std::tuple<int, int, int>>& recursion_info() const {
+//    return recursion_info_;
+//  }
+//};
+//
+//
 class EdgeList {
  private:
   const ListID& id_;
@@ -143,6 +143,9 @@ class EdgeList {
   // stores the related counting coefficient.
   Vector<std::tuple<const IDElement&, int, int>> recursion_info_;
 
+  void init_recursion_info_aux(
+      const ListID& id, const Vector<ListID>& list_ids, const arma::mat& choose,
+      Vector<std::tuple<const IDElement&, int, int>>& recursion_info) const;
   Vector<std::tuple<const IDElement&, int, int>> init_recursion_info(
       const ListID& id, const Vector<ListID>& list_ids,
       const arma::mat& choose) const;
@@ -313,7 +316,7 @@ Vector<ListID> find_list_ids(const Vector<PartitionSet>& psets, int max_order) {
 
   // Sort the list IDs.
   std::sort(ids.begin(), ids.end(),
-            [](const ListID& left_id, const ListID& right_id) -> bool {
+            [](const ListID& left_id, const ListID& right_id) {
               return left_id.elems() < right_id.elems();
             });
 
@@ -360,33 +363,33 @@ int print_list_ids(VectorVector<int> edge_sets, int max_order) {
   return ids.size();
 }
 
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////// EDGE LISTS //////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-///////////////////////////////////////////////////////////////////////////////
-////////////////////////////// EDGE LISTS /////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-Vector<std::tuple<const IDElement&, int, int>> EdgeList::init_recursion_info(
-    const ListID& id, const Vector<ListID>& list_ids,
-    const arma::mat& choose) const {
-  Vector<std::tuple<const IDElement&, int, int>> recursion_info;
-  recursion_info.reserve(id.size());
-
+void EdgeList::init_recursion_info_aux(
+    const ListID& id, const Vector<ListID>& list_ids, const arma::mat& choose,
+    Vector<std::tuple<const IDElement&, int, int>>& recursion_info) const {
   // Loop through the unique ID elements in the edge list ID and cache the
   // corresponding recursion information 3-tuples.
-  for (auto curr_it = id.begin(); curr_it != id.end();) {
+  for (auto curr_it = id.elems().begin(); curr_it != id.elems().end();) {
     // Determine the node list ID elements associated with the child node.
     Vector<IDElement> node_list_id_elems;
-    node_list_id_elems.reserve(id.size() - 1);
+    node_list_id_elems.reserve(id.elems().size() - 1);
 
-    for (auto it = id.begin(); it != id.end(); ++it) {
+    for (auto it = id.elems().begin(); it != id.elems().end(); ++it) {
       // The node list ID elements should not include the current ID element.
       // (Note: we intentionally compare iterators for equality.)
-      if (it != curr_it) node_list_id_elems.emplace_back(&it->pset(), it->order());
+      if (it != curr_it)
+        node_list_id_elems.emplace_back(it->pset(), it->order());
     }
 
     // Compute the node list index associated with the child node.
-    auto node_list_id_it =
-        std::lower_bound(list_ids.begin(), list_ids.end(), node_list_id_elems);
+    auto node_list_id_it = std::lower_bound(
+        list_ids.begin(), list_ids.end(), node_list_id_elems,
+        [](const ListID& left_id, const Vector<IDElement>& right_id_elems) {
+          return left_id.elems() < right_id_elems;
+        });
     int node_list_ind = node_list_id_it - list_ids.begin();
 
     // Cache the current recursion information 3-tuple.
@@ -395,11 +398,20 @@ Vector<std::tuple<const IDElement&, int, int>> EdgeList::init_recursion_info(
         choose(id.sum_orders().at(curr_it->pset()), curr_it->order()));
 
     // Find the next unique ID element in the edge list ID.
-    curr_it = std::find_if_not(
-        ++curr_it, id.end(), [&recursion_info](const IDElement& id_elem) {
-          return id_elem == std::get<0>(recursion_info.back());
+    ++curr_it;
+    curr_it =
+        std::find_if(curr_it, id.elems().end(), [&](const IDElement& id_elem) {
+          return id_elem != std::get<0>(recursion_info.back());
         });
   }
+}
+
+Vector<std::tuple<const IDElement&, int, int>> EdgeList::init_recursion_info(
+    const ListID& id, const Vector<ListID>& list_ids,
+    const arma::mat& choose) const {
+  Vector<std::tuple<const IDElement&, int, int>> recursion_info;
+  recursion_info.reserve(id.elems().size());
+  init_recursion_info_aux(id, list_ids, choose, recursion_info);
 
   return recursion_info;
 }
@@ -433,9 +445,10 @@ int print_elist_recursion_info(VectorVector<int> edge_sets, int max_order,
 
 
 
-///////////////////////////////////////////////////////////////////////////////
-////////////////////////////// DO NOT DELETE! /////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////// DO NOT DELETE! //////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 //
 //void find_key_subsets_aux(std::vector<int>::const_iterator curr_it, std::vector<int>::const_iterator end_it,
