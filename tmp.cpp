@@ -498,15 +498,15 @@ void NodeList::init_recursion_info_aux(
     next_left_elist_id_elems.insert(next_left_elist_id_elems.end(),
                                     left_elist_id_elems.begin(),
                                     left_elist_id_elems.end());
-    const IDElement& next_id_elem = *it++;
-    next_left_elist_id_elems.push_back(next_id_elem);
+    const IDElement& curr_id_elem = *it++;
+    next_left_elist_id_elems.push_back(curr_id_elem);
 
     // Recurse over the previously computed edge list ID elements.
     init_recursion_info_aux(list_ids, choose, it, next_left_elist_id_elems,
                             recursion_info);
 
     // Find the next unique ID element in the node list ID.
-    it = find_next_id_elem(it, id_.elems().end(), next_id_elem);
+    it = find_next_id_elem(it, id_.elems().end(), curr_id_elem);
   }
 }
 
