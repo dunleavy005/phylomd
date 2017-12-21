@@ -188,7 +188,7 @@ void partition_edge_sets_aux(const VectorVector<int>& edge_sets, int curr_ind,
   intersect_label.reserve(curr_label.size() + 1);
   intersect_label.insert(intersect_label.end(), curr_label.begin(),
                          curr_label.end());
-  intersect_label.emplace_back(curr_ind);
+  intersect_label.push_back(curr_ind);
 
   Vector<int> intersect_set;
   intersect_set.reserve(curr_set.size());
@@ -267,11 +267,11 @@ int print_partition_sets(VectorVector<int> edge_sets) {
 //////////////////////////////// LIST IDS //////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void find_list_ids_aux(const Vector<PartitionSet>& psets,
-                       std::size_t curr_ps_ind, int max_order,
-                       const Vector<IDElement>& curr_elems,
-                       const Map<PartitionSet, int>& curr_sum_orders,
-                       Vector<ListID>& ids) {
+void get_list_ids_aux(const Vector<PartitionSet>& psets,
+                      std::size_t curr_ps_ind, int max_order,
+                      const Vector<IDElement>& curr_elems,
+                      const Map<PartitionSet, int>& curr_sum_orders,
+                      Vector<ListID>& ids) {
   // Cache the current list ID.
   ids.emplace_back(curr_elems, curr_sum_orders);
 
@@ -293,13 +293,13 @@ void find_list_ids_aux(const Vector<PartitionSet>& psets,
       if (!insert_results.second) insert_results.first->second += order;
 
       // Recurse over the next possible ID elements.
-      find_list_ids_aux(psets, ps_ind, max_order - order, next_elems,
-                        next_sum_orders, ids);
+      get_list_ids_aux(psets, ps_ind, max_order - order, next_elems,
+                       next_sum_orders, ids);
     }
   }
 }
 
-Vector<ListID> find_list_ids(const Vector<PartitionSet>& psets, int max_order) {
+Vector<ListID> get_list_ids(const Vector<PartitionSet>& psets, int max_order) {
   Vector<ListID> ids;
 
   // Manually create the "empty" list ID (i.e. the partial likelihood list ID).
@@ -308,9 +308,9 @@ Vector<ListID> find_list_ids(const Vector<PartitionSet>& psets, int max_order) {
   // Start the recursion over the multiple partition sets and orders.
   for (int order = 1; order <= max_order; ++order) {
     for (std::size_t ps_ind = 0; ps_ind < psets.size(); ++ps_ind) {
-      find_list_ids_aux(psets, ps_ind, max_order - order,
-                        {IDElement(psets[ps_ind], order)},
-                        {{psets[ps_ind], order}}, ids);
+      get_list_ids_aux(psets, ps_ind, max_order - order,
+                       {IDElement(psets[ps_ind], order)},
+                       {{psets[ps_ind], order}}, ids);
     }
   }
 
@@ -351,7 +351,7 @@ void print_list_id_sum_orders(const ListID& id) {
 // [[Rcpp::export]]
 int print_list_ids(VectorVector<int> edge_sets, int max_order) {
   Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
-  Vector<ListID> ids = find_list_ids(psets, max_order);
+  Vector<ListID> ids = get_list_ids(psets, max_order);
 
   for (const auto& id : ids) {
     print_list_id_elems(id);
@@ -420,7 +420,7 @@ Vector<std::tuple<const IDElement&, int, int>> EdgeList::init_recursion_info(
 int print_elist_recursion_info(VectorVector<int> edge_sets, int max_order,
                                int elist_ind) {
   Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
-  Vector<ListID> ids = find_list_ids(psets, max_order);
+  Vector<ListID> ids = get_list_ids(psets, max_order);
   arma::mat choose = choose_table(max_order);
   EdgeList elist(ids[elist_ind], ids, choose);
 
