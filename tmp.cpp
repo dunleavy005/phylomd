@@ -17,14 +17,14 @@ using Map = std::map<T1, T2>;
 class PartitionSet {
  private:
   Vector<int> label_;
-  Vector<int> set_;
+  Vector<int> elems_;
 
  public:
-  PartitionSet(const Vector<int>& label, const Vector<int>& set)
-      : label_(label), set_(set) {}
+  PartitionSet(const Vector<int>& label, const Vector<int>& elems)
+      : label_(label), elems_(elems) {}
 
   const Vector<int>& label() const { return label_; }
-  const Vector<int>& set() const { return set_; }
+  const Vector<int>& elems() const { return elems_; }
 };
 
 // This operator is needed for sum-order map indexing within a given list ID.
@@ -266,9 +266,9 @@ void print_partition_set_label(const PartitionSet& pset) {
 }
 
 void print_partition_set_entries(const PartitionSet& pset) {
-  for (std::size_t i = 0; i < pset.set().size(); ++i) {
-    Rcpp::Rcout << pset.set()[i];
-    if (i < pset.set().size() - 1) Rcpp::Rcout << ",";
+  for (std::size_t i = 0; i < pset.elems().size(); ++i) {
+    Rcpp::Rcout << pset.elems()[i];
+    if (i < pset.elems().size() - 1) Rcpp::Rcout << ",";
   }
 }
 
