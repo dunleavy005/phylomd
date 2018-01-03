@@ -92,9 +92,7 @@ class ListID {
  public:
   ListID(const Vector<IDElement>& elems,
          const Map<PartitionSet, int>& sum_orders)
-      : elems_(elems), sum_orders_(sum_orders) {
-    std::sort(elems_.begin(), elems_.end());
-  }
+      : elems_(elems), sum_orders_(sum_orders) {}
 
   typedef Vector<IDElement>::const_iterator const_iterator;
 
@@ -265,7 +263,7 @@ void print_partition_set_label(const PartitionSet& pset) {
   Rcpp::Rcout << ")";
 }
 
-void print_partition_set_entries(const PartitionSet& pset) {
+void print_partition_set_elems(const PartitionSet& pset) {
   for (std::size_t i = 0; i < pset.elems().size(); ++i) {
     Rcpp::Rcout << pset.elems()[i];
     if (i < pset.elems().size() - 1) Rcpp::Rcout << ",";
@@ -279,7 +277,7 @@ int print_partition_sets(VectorVector<int> edge_sets) {
   for (const auto& pset : psets) {
     print_partition_set_label(pset);
     Rcpp::Rcout << " - ";
-    print_partition_set_entries(pset);
+    print_partition_set_elems(pset);
     Rcpp::Rcout << std::endl;
   }
 
