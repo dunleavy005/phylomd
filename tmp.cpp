@@ -51,14 +51,13 @@ bool operator!=(const PartitionSet& lhs, const PartitionSet& rhs) {
 
 class IDElement {
  private:
-  const PartitionSet* pset_;
+  std::reference_wrapper<const PartitionSet> pset_;
   int order_;
 
  public:
-  IDElement(const PartitionSet& pset, int order)
-      : pset_(&pset), order_(order) {}
+  IDElement(const PartitionSet& pset, int order) : pset_(pset), order_(order) {}
 
-  const PartitionSet& pset() const { return *pset_; }
+  const PartitionSet& pset() const { return pset_; }
   int order() const { return order_; }
 };
 
