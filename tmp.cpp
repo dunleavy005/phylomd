@@ -13,6 +13,9 @@ using VectorVector = std::vector<std::vector<T>>;
 template <typename T1, typename T2>
 using Map = std::map<T1, T2>;
 
+template <typename T>
+using Ref = std::reference_wrapper<T>;
+
 
 class PartitionSet {
  private:
@@ -51,7 +54,7 @@ bool operator!=(const PartitionSet& lhs, const PartitionSet& rhs) {
 
 class IDElement {
  private:
-  std::reference_wrapper<const PartitionSet> pset_;
+  Ref<const PartitionSet> pset_;
   int order_;
 
  public:
@@ -86,17 +89,19 @@ bool operator!=(const IDElement& lhs, const IDElement& rhs) {
 class ListID {
  private:
   Vector<IDElement> elems_;
-  Map<PartitionSet, int> sum_orders_;
+  Map<Ref<const PartitionSet>, int> sum_orders_;
 
  public:
   ListID(const Vector<IDElement>& elems,
-         const Map<PartitionSet, int>& sum_orders)
+         const Map<Ref<const PartitionSet>, int>& sum_orders)
       : elems_(elems), sum_orders_(sum_orders) {}
 
   typedef Vector<IDElement>::const_iterator const_iterator;
 
   const Vector<IDElement>& elems() const { return elems_; }
-  const Map<PartitionSet, int>& sum_orders() const { return sum_orders_; }
+  const Map<Ref<const PartitionSet>, int>& sum_orders() const {
+    return sum_orders_;
+  }
 };
 
 
@@ -290,7 +295,7 @@ int print_partition_sets(VectorVector<int> edge_sets) {
 void get_list_ids_aux(const Vector<PartitionSet>& psets,
                       std::size_t curr_ps_ind, int max_order,
                       const Vector<IDElement>& curr_elems,
-                      const Map<PartitionSet, int>& curr_sum_orders,
+                      const Map<Ref<const PartitionSet>, int>& curr_sum_orders,
                       Vector<ListID>& ids) {
   // Cache the current list ID.
   ids.emplace_back(curr_elems, curr_sum_orders);
@@ -308,7 +313,7 @@ void get_list_ids_aux(const Vector<PartitionSet>& psets,
       next_elems.insert(next_elems.end(), curr_elems.begin(), curr_elems.end());
       next_elems.emplace_back(psets[ps_ind], order);
 
-      Map<PartitionSet, int> next_sum_orders = curr_sum_orders;
+      Map<Ref<const PartitionSet>, int> next_sum_orders = curr_sum_orders;
       auto insert_results = next_sum_orders.emplace(psets[ps_ind], order);
       if (!insert_results.second) insert_results.first->second += order;
 
@@ -323,7 +328,7 @@ Vector<ListID> get_list_ids(const Vector<PartitionSet>& psets, int max_order) {
   Vector<ListID> ids;
 
   // Manually create the "empty" list ID (i.e. the partial likelihood list ID).
-  ids.emplace_back(Vector<IDElement>(), Map<PartitionSet, int>());
+  ids.emplace_back(Vector<IDElement>(), Map<Ref<const PartitionSet>, int>());
 
   // Start the recursion over the multiple partition sets and orders.
   for (int order = 1; order <= max_order; ++order) {
