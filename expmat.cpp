@@ -126,6 +126,37 @@ Vector<arma::cube> ctmc_moments_Q_derivatives_aux(const arma::vec& t,
   return outp;
 }
 
+Vector<arma::cube> ctmc_t_derivatives_aux(const arma::vec& t,
+                                          const arma::mat& Q, int max_order) {
+  // Compute CTMC branch length derivatives for each entry in `t`.
+  Vector<arma::cube> outp;
+  outp.reserve(t.n_elem);
+
+  for (arma::uword i = 0; i < t.n_elem; ++i) {
+    outp.emplace_back(Q.n_rows, Q.n_cols, max_order + 1, arma::fill::zeros);
+    outp[i].slice(0) = arma::expmat(Q * t(i));
+
+    for (int j = 1; j < max_order + 1; ++j) {
+      outp[i].slice(j) = Q * outp[i].slice(j - 1);
+    }
+  }
+
+  return outp;
+}
+
+Vector<arma::cube> ctmc_moments_derivatives(const arma::vec& t,
+                                            const arma::mat& Q,
+                                            const arma::mat& B, int max_order,
+                                            Mode mode) {
+  if (mode == Mode::MOMENTS || mode == Mode::Q_DERIVATIVES) {
+    // Mode 1: MOMENTS
+    // Mode 2: Q_DERIVATIVES
+    return ctmc_moments_Q_derivatives_aux(t, Q, B, max_order, mode);
+  } else {
+    // Mode 3: T_DERIVATIVES
+    return ctmc_t_derivatives_aux(t, Q, max_order);
+  }
+}
 
 
 
