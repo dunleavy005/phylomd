@@ -255,7 +255,22 @@ Vector<PartitionSet> partition_edge_sets(VectorVector<int>& edge_sets) {
   return psets;
 }
 
-void print_partition_set_label(const PartitionSet& pset) {
+Map<int, const PartitionSet&> create_edge_pset_map(
+    const Vector<PartitionSet>& psets) {
+  Map<int, const PartitionSet&> edge_psets;
+
+  // Loop through the partition sets and incrementally add (`edge_ind`, `pset`)
+  // pairs to the output map.
+  for (const auto& pset : psets) {
+    for (auto edge_ind : pset.elems()) {
+      edge_psets.emplace(edge_ind, pset);
+    }
+  }
+
+  return edge_psets;
+}
+
+void print_pset_label(const PartitionSet& pset) {
   Rcpp::Rcout << "(";
   for (std::size_t i = 0; i < pset.label().size(); ++i) {
     Rcpp::Rcout << pset.label()[i];
@@ -264,7 +279,7 @@ void print_partition_set_label(const PartitionSet& pset) {
   Rcpp::Rcout << ")";
 }
 
-void print_partition_set_elems(const PartitionSet& pset) {
+void print_pset_elems(const PartitionSet& pset) {
   for (std::size_t i = 0; i < pset.elems().size(); ++i) {
     Rcpp::Rcout << pset.elems()[i];
     if (i < pset.elems().size() - 1) Rcpp::Rcout << ",";
@@ -272,17 +287,32 @@ void print_partition_set_elems(const PartitionSet& pset) {
 }
 
 // [[Rcpp::export]]
-int print_partition_sets(VectorVector<int> edge_sets) {
+int print_psets(VectorVector<int> edge_sets) {
   Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
 
   for (const auto& pset : psets) {
-    print_partition_set_label(pset);
+    print_pset_label(pset);
     Rcpp::Rcout << " - ";
-    print_partition_set_elems(pset);
+    print_pset_elems(pset);
     Rcpp::Rcout << std::endl;
   }
 
   return psets.size();
+}
+
+// [[Rcpp::export]]
+int print_edge_pset_map(VectorVector<int> edge_sets) {
+  Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
+  Map<int, const PartitionSet&> edge_psets = create_edge_pset_map(psets);
+
+  for (const auto& edge_pset : edge_psets) {
+    Rcpp::Rcout << edge_pset.first;
+    Rcpp::Rcout << " - ";
+    print_pset_label(edge_pset.second);
+    Rcpp::Rcout << std::endl;
+  }
+
+  return edge_psets.size();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -347,7 +377,7 @@ Vector<ListID> get_list_ids(const Vector<PartitionSet>& psets, int max_order) {
 
 void print_id_element(const IDElement& id_elem) {
   Rcpp::Rcout << "[";
-  print_partition_set_label(id_elem.pset());
+  print_pset_label(id_elem.pset());
   Rcpp::Rcout << "-" << id_elem.order() << "]";
 }
 
@@ -363,7 +393,7 @@ void print_list_id_elems(const ListID& id) {
 void print_list_id_sum_orders(const ListID& id) {
   Rcpp::Rcout << "{";
   for (auto it = id.sum_orders().begin(); it != id.sum_orders().end(); ++it) {
-    print_partition_set_label(it->first);
+    print_pset_label(it->first);
     Rcpp::Rcout << ":" << it->second;
     if (std::distance(it, id.sum_orders().end()) > 1) Rcpp::Rcout << " , ";
   }
