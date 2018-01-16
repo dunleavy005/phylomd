@@ -60,16 +60,13 @@ arma::vec factorial_table(int n) {
 }
 
 
-enum class Mode { MOMENTS, DERIVATIVES };
+enum class Mode { MOMENTS, Q_DERIVATIVES, T_DERIVATIVES };
 
 
-
-
-
-std::vector<arma::cube> ctmc_moments_derivatives_aux(const arma::vec& t,
-                                                     const arma::mat& Q,
-                                                     const arma::mat& B,
-                                                     int max_order, Mode mode) {
+Vector<arma::cube> ctmc_moments_Q_derivatives_aux(const arma::vec& t,
+                                                  const arma::mat& Q,
+                                                  const arma::mat& B,
+                                                  int max_order, Mode mode) {
   // Construct the auxiliary matrix `A`.
   // `A` is an upper block bidiagonal matrix of the form: (Q  B  0 ... 0)
   //                                                      (0  Q  B ... 0)
@@ -80,7 +77,7 @@ std::vector<arma::cube> ctmc_moments_derivatives_aux(const arma::vec& t,
   arma::mat A(arma::size(Q) * (max_order + 1), arma::fill::zeros);
   A(0, 0, arma::size(Q)) = Q;
   for (int i = 0; i < max_order; ++i) {
-    A(Q.n_rows *  i     , Q.n_cols * (i + 1), arma::size(Q)) = B;
+    A(Q.n_rows * i, Q.n_cols * (i + 1), arma::size(Q)) = B;
     A(Q.n_rows * (i + 1), Q.n_cols * (i + 1), arma::size(Q)) = Q;
   }
 
@@ -89,31 +86,38 @@ std::vector<arma::cube> ctmc_moments_derivatives_aux(const arma::vec& t,
   arma::mat stirling_num =
       (mode == Mode::MOMENTS) ? stirling_num_table(max_order) : arma::mat();
 
-  // Compute either CTMC moments or CTMC derivatives for each entry in `t`.
-  std::vector<arma::cube> outp(t.n_elem);
+  // Compute either CTMC moments or CTMC rate matrix derivatives for each entry
+  // in `t`.
+  Vector<arma::cube> outp;
+  outp.reserve(t.n_elem);
 
   for (arma::uword i = 0; i < t.n_elem; ++i) {
     // Compute the matrix exponential integrals.
-    // See (Van Loan, 1978) for an expression of the matrix exponential `exp(A * t(i))`.
+    // See (Van Loan, 1978) for an expression of the matrix exponential
+    // `exp(A * t(i))`.
     arma::mat integrals_mat = arma::expmat(A * t(i)).eval().head_rows(Q.n_rows);
-    arma::cube integrals(integrals_mat.begin(), Q.n_rows, Q.n_cols, max_order + 1);
+    arma::cube integrals(integrals_mat.begin(), Q.n_rows, Q.n_cols,
+                         max_order + 1);
 
-    // Store the zeroth CTMC moment/derivative (i.e. the transition probability matrix).
-    outp[i].zeros(arma::size(integrals));
+    // Store the zeroth CTMC moment or rate matrix derivative (i.e. the
+    // transition probability matrix).
+    outp.emplace_back(arma::size(integrals), arma::fill::zeros);
     outp[i].slice(0) = std::move(integrals.slice(0));
 
     for (int j = 1; j < max_order + 1; ++j) {
-      // Multiply the matrix exponential integrals by the corresponding factorials.
+      // Multiply the matrix exponential integrals by the corresponding
+      // factorials.
       integrals.slice(j) *= factorial(j);
 
       if (mode == Mode::MOMENTS) {
         // Mode 1: MOMENTS
-        // Calculate the raw moments using the factorial moments and Stirling numbers.
+        // Calculate the raw moments using the factorial moments and Stirling
+        // numbers.
         for (int k = 1; k < j + 1; ++k) {
           outp[i].slice(j) += integrals.slice(k) * stirling_num(j, k);
         }
       } else {
-        // Mode 2: DERIVATIVES
+        // Mode 2: Q_DERIVATIVES
         outp[i].slice(j) = std::move(integrals.slice(j));
       }
     }
@@ -132,7 +136,7 @@ std::vector<arma::cube> ctmc_moments_derivatives_aux(const arma::vec& t,
 // [[Rcpp::export]]
 Rcpp::List ctmc_moments_wrapper(const arma::vec& t, const arma::mat& rate_mat,
                                 const arma::mat& meat_mat, int max_order) {
-  std::vector<arma::cube> outp = ctmc_moments_derivatives_aux(t, rate_mat, meat_mat, max_order, Mode::MOMENTS);
+  std::vector<arma::cube> outp = ctmc_moments_Q_derivatives_aux(t, rate_mat, meat_mat, max_order, Mode::MOMENTS);
   return Rcpp::List(outp.begin(), outp.end());
 }
 
@@ -140,6 +144,6 @@ Rcpp::List ctmc_moments_wrapper(const arma::vec& t, const arma::mat& rate_mat,
 // [[Rcpp::export]]
 Rcpp::List ctmc_derivatives_wrapper(const arma::vec& t, const arma::mat& rate_mat,
                                     const arma::mat& meat_mat, int max_order) {
-  std::vector<arma::cube> outp = ctmc_moments_derivatives_aux(t, rate_mat, meat_mat, max_order, Mode::DERIVATIVES);
+  std::vector<arma::cube> outp = ctmc_moments_Q_derivatives_aux(t, rate_mat, meat_mat, max_order, Mode::Q_DERIVATIVES);
   return Rcpp::List(outp.begin(), outp.end());
 }
