@@ -17,6 +17,22 @@ template <typename T>
 using Ref = std::reference_wrapper<T>;
 
 
+class EdgeSet {
+ private:
+  int label_;
+  Vector<int> elems_;
+
+ public:
+  EdgeSet(int label, Vector<int>&& elems)
+      : label_(label), elems_(std::move(elems)) {
+    std::sort(elems_.begin(), elems_.end());
+  }
+
+  int label() const { return label_; }
+  const Vector<int>& elems() const { return elems_; }
+};
+
+
 class PartitionSet {
  private:
   Vector<int> label_;
@@ -187,10 +203,51 @@ ListID::const_iterator find_next_id_elem(ListID::const_iterator begin_it,
 
 
 ////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////// EDGE SETS //////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+Vector<EdgeSet> create_edge_sets(VectorVector<int>& esets_inp) {
+  Vector<EdgeSet> esets;
+  esets.reserve(esets_inp.size());
+
+  for (std::size_t i = 0; i < esets_inp.size(); ++i) {
+    esets.emplace_back(i, std::move(esets_inp[i]));
+  }
+
+  return esets;
+}
+
+void print_set_label(const EdgeSet& eset) {
+  Rcpp::Rcout << "(" << eset.label() << ")";
+}
+
+template <typename Set>
+void print_set_elems(const Set& set) {
+  for (std::size_t i = 0; i < set.elems().size(); ++i) {
+    Rcpp::Rcout << set.elems()[i];
+    if (i < set.elems().size() - 1) Rcpp::Rcout << ",";
+  }
+}
+
+// [[Rcpp::export]]
+int print_esets(VectorVector<int> esets_inp) {
+  Vector<EdgeSet> esets = create_edge_sets(esets_inp);
+
+  for (const auto& eset : esets) {
+    print_set_label(eset);
+    Rcpp::Rcout << " - ";
+    print_set_elems(eset);
+    Rcpp::Rcout << std::endl;
+  }
+
+  return esets.size();
+}
+
+////////////////////////////////////////////////////////////////////////////////
 //////////////////////////// PARTITION SETS ////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void partition_edge_sets_aux(const VectorVector<int>& edge_sets, int curr_ind,
+void partition_edge_sets_aux(const Vector<EdgeSet>& esets, std::size_t curr_ind,
                              const Vector<int>& curr_label,
                              const Vector<int>& curr_elems,
                              Vector<PartitionSet>& psets) {
@@ -200,7 +257,7 @@ void partition_edge_sets_aux(const VectorVector<int>& edge_sets, int curr_ind,
   // current partitioned edge set and exit the function.
   if (curr_elems.empty()) {
     return;
-  } else if ((std::size_t)curr_ind == edge_sets.size()) {
+  } else if (curr_ind == esets.size()) {
     psets.emplace_back(curr_label, curr_elems);
     return;
   }
@@ -211,36 +268,36 @@ void partition_edge_sets_aux(const VectorVector<int>& edge_sets, int curr_ind,
   intersect_label.reserve(curr_label.size() + 1);
   intersect_label.insert(intersect_label.end(), curr_label.begin(),
                          curr_label.end());
-  intersect_label.push_back(curr_ind);
+  intersect_label.push_back(esets[curr_ind].label());
 
   Vector<int> intersect_elems;
   intersect_elems.reserve(curr_elems.size());
-  std::set_intersection(curr_elems.begin(), curr_elems.end(),
-                        edge_sets[curr_ind].begin(), edge_sets[curr_ind].end(),
-                        std::back_inserter(intersect_elems));
+  std::set_intersection(
+      curr_elems.begin(), curr_elems.end(), esets[curr_ind].elems().begin(),
+      esets[curr_ind].elems().end(), std::back_inserter(intersect_elems));
 
   Vector<int> diff_elems;
-  diff_elems.reserve(curr_elems.size());
-  std::set_difference(curr_elems.begin(), curr_elems.end(),
-                      edge_sets[curr_ind].begin(), edge_sets[curr_ind].end(),
-                      std::back_inserter(diff_elems));
+  diff_elems.reserve(curr_elems.size() - intersect_elems.size());
+  std::set_difference(
+      curr_elems.begin(), curr_elems.end(), esets[curr_ind].elems().begin(),
+      esets[curr_ind].elems().end(), std::back_inserter(diff_elems));
 
   // Recurse over the next edge set.
   ++curr_ind;
-  partition_edge_sets_aux(edge_sets, curr_ind, intersect_label, intersect_elems,
+  partition_edge_sets_aux(esets, curr_ind, intersect_label, intersect_elems,
                           psets);
-  partition_edge_sets_aux(edge_sets, curr_ind, curr_label, diff_elems, psets);
+  partition_edge_sets_aux(esets, curr_ind, curr_label, diff_elems, psets);
 }
 
-Vector<PartitionSet> partition_edge_sets(VectorVector<int>& edge_sets) {
+Vector<PartitionSet> partition_edge_sets(const Vector<EdgeSet>& esets) {
   // This partitioning algorithm is summarized at
   // https://bosker.wordpress.com/2013/07/10/venn-diagram-partitioning/.
 
-  // Sort the edge sets and incrementally union them together.
+  // Union all the edge set elements.
   Vector<int> union_elems;
-  for (auto& es : edge_sets) {
-    std::sort(es.begin(), es.end());
-    union_elems.insert(union_elems.end(), es.begin(), es.end());
+  for (const auto& eset : esets) {
+    union_elems.insert(union_elems.end(), eset.elems().begin(),
+                       eset.elems().end());
   }
   std::sort(union_elems.begin(), union_elems.end());
   auto end_it = std::unique(union_elems.begin(), union_elems.end());
@@ -248,9 +305,9 @@ Vector<PartitionSet> partition_edge_sets(VectorVector<int>& edge_sets) {
 
   // Create the partitioned edge sets.
   Vector<PartitionSet> psets;
-  psets.reserve(std::min((int)std::pow(2, edge_sets.size()) - 1,
-                         (int)union_elems.size()));
-  partition_edge_sets_aux(edge_sets, 0, {}, union_elems, psets);
+  psets.reserve(
+      std::min((int)std::pow(2, esets.size()) - 1, (int)union_elems.size()));
+  partition_edge_sets_aux(esets, 0, {}, union_elems, psets);
 
   return psets;
 }
@@ -270,7 +327,7 @@ Map<int, const PartitionSet&> create_edge_pset_map(
   return edge_psets;
 }
 
-void print_pset_label(const PartitionSet& pset) {
+void print_set_label(const PartitionSet& pset) {
   Rcpp::Rcout << "(";
   for (std::size_t i = 0; i < pset.label().size(); ++i) {
     Rcpp::Rcout << pset.label()[i];
@@ -279,21 +336,15 @@ void print_pset_label(const PartitionSet& pset) {
   Rcpp::Rcout << ")";
 }
 
-void print_pset_elems(const PartitionSet& pset) {
-  for (std::size_t i = 0; i < pset.elems().size(); ++i) {
-    Rcpp::Rcout << pset.elems()[i];
-    if (i < pset.elems().size() - 1) Rcpp::Rcout << ",";
-  }
-}
-
 // [[Rcpp::export]]
-int print_psets(VectorVector<int> edge_sets) {
-  Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
+int print_psets(VectorVector<int> esets_inp) {
+  Vector<EdgeSet> esets = create_edge_sets(esets_inp);
+  Vector<PartitionSet> psets = partition_edge_sets(esets);
 
   for (const auto& pset : psets) {
-    print_pset_label(pset);
+    print_set_label(pset);
     Rcpp::Rcout << " - ";
-    print_pset_elems(pset);
+    print_set_elems(pset);
     Rcpp::Rcout << std::endl;
   }
 
@@ -301,14 +352,15 @@ int print_psets(VectorVector<int> edge_sets) {
 }
 
 // [[Rcpp::export]]
-int print_edge_pset_map(VectorVector<int> edge_sets) {
-  Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
+int print_edge_pset_map(VectorVector<int> esets_inp) {
+  Vector<EdgeSet> esets = create_edge_sets(esets_inp);
+  Vector<PartitionSet> psets = partition_edge_sets(esets);
   Map<int, const PartitionSet&> edge_psets = create_edge_pset_map(psets);
 
   for (const auto& edge_pset : edge_psets) {
     Rcpp::Rcout << edge_pset.first;
     Rcpp::Rcout << " - ";
-    print_pset_label(edge_pset.second);
+    print_set_label(edge_pset.second);
     Rcpp::Rcout << std::endl;
   }
 
