@@ -68,53 +68,62 @@ bool operator!=(const PartitionSet& lhs, const PartitionSet& rhs) {
 }
 
 
+template <typename Set>
 class IDElement {
  private:
-  Ref<const PartitionSet> pset_;
+  Ref<const Set> set_;
   int order_;
 
  public:
-  IDElement(const PartitionSet& pset, int order) : pset_(pset), order_(order) {}
+  IDElement(const Set& set, int order) : set_(set), order_(order) {}
 
-  const PartitionSet& pset() const { return pset_; }
+  const Set& set() const { return set_; }
   int order() const { return order_; }
 };
 
 // This operator is needed for sorting list IDs.
-bool operator<(const IDElement& lhs, const IDElement& rhs) {
-  return std::forward_as_tuple(lhs.pset(), lhs.order()) <
-         std::forward_as_tuple(rhs.pset(), rhs.order());
+template <typename Set>
+bool operator<(const IDElement<Set>& lhs, const IDElement<Set>& rhs) {
+  return std::forward_as_tuple(lhs.set(), lhs.order()) <
+         std::forward_as_tuple(rhs.set(), rhs.order());
 }
 // This operator is needed for finding unique ID elements in list IDs.
-bool operator==(const IDElement& lhs, const IDElement& rhs) {
-  return std::forward_as_tuple(lhs.pset(), lhs.order()) ==
-         std::forward_as_tuple(rhs.pset(), rhs.order());
+template <typename Set>
+bool operator==(const IDElement<Set>& lhs, const IDElement<Set>& rhs) {
+  return std::forward_as_tuple(lhs.set(), lhs.order()) ==
+         std::forward_as_tuple(rhs.set(), rhs.order());
 }
-bool operator>(const IDElement& lhs, const IDElement& rhs) { return rhs < lhs; }
-bool operator<=(const IDElement& lhs, const IDElement& rhs) {
+template <typename Set>
+bool operator>(const IDElement<Set>& lhs, const IDElement<Set>& rhs) {
+  return rhs < lhs;
+}
+template <typename Set>
+bool operator<=(const IDElement<Set>& lhs, const IDElement<Set>& rhs) {
   return !(rhs < lhs);
 }
-bool operator>=(const IDElement& lhs, const IDElement& rhs) {
+template <typename Set>
+bool operator>=(const IDElement<Set>& lhs, const IDElement<Set>& rhs) {
   return !(lhs < rhs);
 }
-bool operator!=(const IDElement& lhs, const IDElement& rhs) {
+template <typename Set>
+bool operator!=(const IDElement<Set>& lhs, const IDElement<Set>& rhs) {
   return !(lhs == rhs);
 }
 
 
 class ListID {
  private:
-  Vector<IDElement> elems_;
+  Vector<IDElement<PartitionSet>> elems_;
   Map<Ref<const PartitionSet>, int> sum_orders_;
 
  public:
-  ListID(const Vector<IDElement>& elems,
+  ListID(const Vector<IDElement<PartitionSet>>& elems,
          const Map<Ref<const PartitionSet>, int>& sum_orders)
       : elems_(elems), sum_orders_(sum_orders) {}
 
-  typedef Vector<IDElement>::const_iterator const_iterator;
+  typedef Vector<IDElement<PartitionSet>>::const_iterator const_iterator;
 
-  const Vector<IDElement>& elems() const { return elems_; }
+  const Vector<IDElement<PartitionSet>>& elems() const { return elems_; }
   const Map<Ref<const PartitionSet>, int>& sum_orders() const {
     return sum_orders_;
   }
@@ -131,20 +140,22 @@ class EdgeList {
   // assignment of an ID element, the second element contains the corresponding
   // node list index associated with the child node, and the third element
   // stores the related counting coefficient.
-  Vector<std::tuple<const IDElement&, int, int>> recursion_info_;
+  Vector<std::tuple<const IDElement<PartitionSet>&, int, int>> recursion_info_;
 
   void init_recursion_info_aux(
       const Vector<ListID>& ids, const arma::mat& choose,
-      Vector<std::tuple<const IDElement&, int, int>>& recursion_info) const;
-  Vector<std::tuple<const IDElement&, int, int>> init_recursion_info(
-      const Vector<ListID>& ids, const arma::mat& choose) const;
+      Vector<std::tuple<const IDElement<PartitionSet>&, int, int>>&
+          recursion_info) const;
+  Vector<std::tuple<const IDElement<PartitionSet>&, int, int>>
+  init_recursion_info(const Vector<ListID>& ids, const arma::mat& choose) const;
 
  public:
   EdgeList(const ListID& id, const Vector<ListID>& ids, const arma::mat& choose)
       : id_(id), recursion_info_(init_recursion_info(ids, choose)) {}
 
   const ListID& id() const { return id_; }
-  const Vector<std::tuple<const IDElement&, int, int>>& recursion_info() const {
+  const Vector<std::tuple<const IDElement<PartitionSet>&, int, int>>&
+  recursion_info() const {
     return recursion_info_;
   }
 };
@@ -165,7 +176,7 @@ class NodeList {
   void init_recursion_info_aux(
       const Vector<ListID>& ids, const arma::mat& choose,
       ListID::const_iterator curr_it,
-      const Vector<IDElement>& left_elist_id_elems,
+      const Vector<IDElement<PartitionSet>>& left_elist_id_elems,
       Vector<std::tuple<int, int, int>>& recursion_info) const;
   Vector<std::tuple<int, int, int>> init_recursion_info(
       const Vector<ListID>& ids, const arma::mat& choose) const;
@@ -184,21 +195,22 @@ class NodeList {
 // helper functions
 
 int find_list_id_index(const Vector<ListID>& ids,
-                       const Vector<IDElement>& id_elems) {
-  return std::lower_bound(
-             ids.begin(), ids.end(), id_elems,
-             [](const ListID& id, const Vector<IDElement>& id_elems) {
-               return id.elems() < id_elems;
-             }) -
+                       const Vector<IDElement<PartitionSet>>& id_elems) {
+  return std::lower_bound(ids.begin(), ids.end(), id_elems,
+                          [](const ListID& id,
+                             const Vector<IDElement<PartitionSet>>& id_elems) {
+                            return id.elems() < id_elems;
+                          }) -
          ids.begin();
 }
 
-ListID::const_iterator find_next_id_elem(ListID::const_iterator begin_it,
-                                         ListID::const_iterator end_it,
-                                         const IDElement& curr_id_elem) {
-  return std::find_if(begin_it, end_it, [&](const IDElement& id_elem) {
-    return id_elem != curr_id_elem;
-  });
+ListID::const_iterator find_next_id_elem(
+    ListID::const_iterator begin_it, ListID::const_iterator end_it,
+    const IDElement<PartitionSet>& curr_id_elem) {
+  return std::find_if(begin_it, end_it,
+                      [&](const IDElement<PartitionSet>& id_elem) {
+                        return id_elem != curr_id_elem;
+                      });
 }
 
 
@@ -373,7 +385,7 @@ int print_edge_pset_map(VectorVector<int> esets_inp) {
 
 void get_list_ids_aux(const Vector<PartitionSet>& psets,
                       std::size_t curr_ps_ind, int max_order,
-                      const Vector<IDElement>& curr_elems,
+                      const Vector<IDElement<PartitionSet>>& curr_elems,
                       const Map<Ref<const PartitionSet>, int>& curr_sum_orders,
                       Vector<ListID>& ids) {
   // Cache the current list ID.
@@ -387,7 +399,7 @@ void get_list_ids_aux(const Vector<PartitionSet>& psets,
       // Form the next list ID by concatenating the current list ID elements
       // with the next ID element and creating a new sum-order map by updating
       // the current one.
-      Vector<IDElement> next_elems;
+      Vector<IDElement<PartitionSet>> next_elems;
       next_elems.reserve(curr_elems.size() + 1);
       next_elems.insert(next_elems.end(), curr_elems.begin(), curr_elems.end());
       next_elems.emplace_back(psets[ps_ind], order);
@@ -407,13 +419,14 @@ Vector<ListID> get_list_ids(const Vector<PartitionSet>& psets, int max_order) {
   Vector<ListID> ids;
 
   // Manually create the "empty" list ID (i.e. the partial likelihood list ID).
-  ids.emplace_back(Vector<IDElement>(), Map<Ref<const PartitionSet>, int>());
+  ids.emplace_back(Vector<IDElement<PartitionSet>>(),
+                   Map<Ref<const PartitionSet>, int>());
 
   // Start the recursion over the multiple partition sets and orders.
   for (int order = 1; order <= max_order; ++order) {
     for (std::size_t ps_ind = 0; ps_ind < psets.size(); ++ps_ind) {
       get_list_ids_aux(psets, ps_ind, max_order - order,
-                       {IDElement(psets[ps_ind], order)},
+                       {IDElement<PartitionSet>(psets[ps_ind], order)},
                        {{psets[ps_ind], order}}, ids);
     }
   }
@@ -427,9 +440,10 @@ Vector<ListID> get_list_ids(const Vector<PartitionSet>& psets, int max_order) {
   return ids;
 }
 
-void print_id_element(const IDElement& id_elem) {
+template <typename Set>
+void print_id_element(const IDElement<Set>& id_elem) {
   Rcpp::Rcout << "[";
-  print_pset_label(id_elem.pset());
+  print_set_label(id_elem.set());
   Rcpp::Rcout << "-" << id_elem.order() << "]";
 }
 
@@ -445,7 +459,7 @@ void print_list_id_elems(const ListID& id) {
 void print_list_id_sum_orders(const ListID& id) {
   Rcpp::Rcout << "{";
   for (auto it = id.sum_orders().begin(); it != id.sum_orders().end(); ++it) {
-    print_pset_label(it->first);
+    print_set_label(it->first);
     Rcpp::Rcout << ":" << it->second;
     if (std::distance(it, id.sum_orders().end()) > 1) Rcpp::Rcout << " , ";
   }
@@ -453,8 +467,9 @@ void print_list_id_sum_orders(const ListID& id) {
 }
 
 // [[Rcpp::export]]
-int print_list_ids(VectorVector<int> edge_sets, int max_order) {
-  Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
+int print_list_ids(VectorVector<int> esets_inp, int max_order) {
+  Vector<EdgeSet> esets = create_edge_sets(esets_inp);
+  Vector<PartitionSet> psets = partition_edge_sets(esets);
   Vector<ListID> ids = get_list_ids(psets, max_order);
 
   for (const auto& id : ids) {
@@ -473,12 +488,13 @@ int print_list_ids(VectorVector<int> edge_sets, int max_order) {
 
 void EdgeList::init_recursion_info_aux(
     const Vector<ListID>& ids, const arma::mat& choose,
-    Vector<std::tuple<const IDElement&, int, int>>& recursion_info) const {
+    Vector<std::tuple<const IDElement<PartitionSet>&, int, int>>&
+        recursion_info) const {
   // Loop through the unique ID elements in the edge list ID and cache the
   // corresponding recursion information 3-tuples.
   for (auto curr_it = id_.elems().begin(); curr_it != id_.elems().end();) {
     // Determine the node list ID elements associated with the child node.
-    Vector<IDElement> nlist_id_elems;
+    Vector<IDElement<PartitionSet>> nlist_id_elems;
     nlist_id_elems.reserve(id_.elems().size() - 1);
 
     for (auto it = id_.elems().begin(); it != id_.elems().end(); ++it) {
@@ -491,9 +507,9 @@ void EdgeList::init_recursion_info_aux(
     int nlist_ind = find_list_id_index(ids, nlist_id_elems);
 
     // Cache the current recursion information 3-tuple.
-    const IDElement& curr_id_elem = *curr_it++;
+    const IDElement<PartitionSet>& curr_id_elem = *curr_it++;
     int choose_coef =
-        choose(id_.sum_orders().at(curr_id_elem.pset()), curr_id_elem.order());
+        choose(id_.sum_orders().at(curr_id_elem.set()), curr_id_elem.order());
     recursion_info.emplace_back(curr_id_elem, nlist_ind, choose_coef);
 
     // Find the next unique ID element in the edge list ID.
@@ -501,9 +517,10 @@ void EdgeList::init_recursion_info_aux(
   }
 }
 
-Vector<std::tuple<const IDElement&, int, int>> EdgeList::init_recursion_info(
-    const Vector<ListID>& ids, const arma::mat& choose) const {
-  Vector<std::tuple<const IDElement&, int, int>> recursion_info;
+Vector<std::tuple<const IDElement<PartitionSet>&, int, int>>
+EdgeList::init_recursion_info(const Vector<ListID>& ids,
+                              const arma::mat& choose) const {
+  Vector<std::tuple<const IDElement<PartitionSet>&, int, int>> recursion_info;
   recursion_info.reserve(id_.elems().size());
   init_recursion_info_aux(ids, choose, recursion_info);
 
@@ -511,9 +528,10 @@ Vector<std::tuple<const IDElement&, int, int>> EdgeList::init_recursion_info(
 }
 
 // [[Rcpp::export]]
-int print_elist_recursion_info(VectorVector<int> edge_sets, int max_order,
+int print_elist_recursion_info(VectorVector<int> esets_inp, int max_order,
                                int elist_ind) {
-  Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
+  Vector<EdgeSet> esets = create_edge_sets(esets_inp);
+  Vector<PartitionSet> psets = partition_edge_sets(esets);
   Vector<ListID> ids = get_list_ids(psets, max_order);
   arma::mat choose = choose_table(max_order);
   EdgeList elist(ids[elist_ind], ids, choose);
@@ -523,7 +541,7 @@ int print_elist_recursion_info(VectorVector<int> edge_sets, int max_order,
   Rcpp::Rcout << "\n" << std::endl;
 
   for (const auto& tup : elist.recursion_info()) {
-    const IDElement& curr_id_elem = std::get<0>(tup);
+    const IDElement<PartitionSet>& curr_id_elem = std::get<0>(tup);
     int nlist_ind = std::get<1>(tup);
     int choose_coef = std::get<2>(tup);
 
@@ -544,10 +562,10 @@ int print_elist_recursion_info(VectorVector<int> edge_sets, int max_order,
 void NodeList::init_recursion_info_aux(
     const Vector<ListID>& ids, const arma::mat& choose,
     ListID::const_iterator curr_it,
-    const Vector<IDElement>& left_elist_id_elems,
+    const Vector<IDElement<PartitionSet>>& left_elist_id_elems,
     Vector<std::tuple<int, int, int>>& recursion_info) const {
   // Determine the edge list ID elements associated with the right child edge.
-  Vector<IDElement> right_elist_id_elems;
+  Vector<IDElement<PartitionSet>> right_elist_id_elems;
   right_elist_id_elems.reserve(id_.elems().size() - left_elist_id_elems.size());
   std::set_difference(id_.elems().begin(), id_.elems().end(),
                       left_elist_id_elems.begin(), left_elist_id_elems.end(),
@@ -574,12 +592,12 @@ void NodeList::init_recursion_info_aux(
   for (auto it = curr_it; it != id_.elems().end();) {
     // Determine the next possible edge list ID elements associated with the
     // left child edge.
-    Vector<IDElement> next_left_elist_id_elems;
+    Vector<IDElement<PartitionSet>> next_left_elist_id_elems;
     next_left_elist_id_elems.reserve(left_elist_id_elems.size() + 1);
     next_left_elist_id_elems.insert(next_left_elist_id_elems.end(),
                                     left_elist_id_elems.begin(),
                                     left_elist_id_elems.end());
-    const IDElement& curr_id_elem = *it++;
+    const IDElement<PartitionSet>& curr_id_elem = *it++;
     next_left_elist_id_elems.push_back(curr_id_elem);
 
     // Recurse over the previously computed edge list ID elements.
@@ -601,9 +619,10 @@ Vector<std::tuple<int, int, int>> NodeList::init_recursion_info(
 }
 
 // [[Rcpp::export]]
-int print_nlist_recursion_info(VectorVector<int> edge_sets, int max_order,
+int print_nlist_recursion_info(VectorVector<int> esets_inp, int max_order,
                                int nlist_ind) {
-  Vector<PartitionSet> psets = partition_edge_sets(edge_sets);
+  Vector<EdgeSet> esets = create_edge_sets(esets_inp);
+  Vector<PartitionSet> psets = partition_edge_sets(esets);
   Vector<ListID> ids = get_list_ids(psets, max_order);
   arma::mat choose = choose_table(max_order);
   NodeList nlist(ids[nlist_ind], ids, choose);
