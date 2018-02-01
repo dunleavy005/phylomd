@@ -32,6 +32,25 @@ class EdgeSet {
   const Vector<int>& elems() const { return elems_; }
 };
 
+bool operator<(const EdgeSet& lhs, const EdgeSet& rhs) {
+  return lhs.label() < rhs.label();
+}
+bool operator==(const EdgeSet& lhs, const EdgeSet& rhs) {
+  return lhs.label() == rhs.label();
+}
+bool operator>(const EdgeSet& lhs, const EdgeSet& rhs) {
+  return rhs < lhs;
+}
+bool operator<=(const EdgeSet& lhs, const EdgeSet& rhs) {
+  return !(rhs < lhs);
+}
+bool operator>=(const EdgeSet& lhs, const EdgeSet& rhs) {
+  return !(lhs < rhs);
+}
+bool operator!=(const EdgeSet& lhs, const EdgeSet& rhs) {
+  return !(lhs == rhs);
+}
+
 
 class PartitionSet {
  private:
@@ -81,6 +100,7 @@ class IDElement {
   int order() const { return order_; }
 };
 
+typedef IDElement<EdgeSet> MomentDerivativeIDElement;
 typedef IDElement<PartitionSet> ListIDElement;
 
 // This operator is needed for sorting list IDs.
@@ -112,6 +132,8 @@ bool operator!=(const IDElement<Set>& lhs, const IDElement<Set>& rhs) {
   return !(lhs == rhs);
 }
 
+
+typedef Vector<MomentDerivativeIDElement> MomentDerivativeID;
 
 class ListID {
  private:
@@ -380,6 +402,88 @@ int print_edge_pset_map(VectorVector<int> esets_inp) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/////////////////////////// MOMENT/DERIVATIVE IDS //////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+void get_moment_derivative_ids_aux(const Vector<EdgeSet>& esets,
+                                   std::size_t curr_es_ind, int max_order,
+                                   const MomentDerivativeID& curr_id,
+                                   Vector<MomentDerivativeID>& ids) {
+  // Cache the current moment/derivative ID.
+  ids.push_back(curr_id);
+
+  // Find the next moment/derivative IDs.
+  // (Note: the loop body will not be entered if there are no more
+  // moment/derivative IDs to find.)
+  for (int order = 1; order <= max_order; ++order) {
+    for (std::size_t es_ind = curr_es_ind; es_ind < esets.size(); ++es_ind) {
+      // Form the next moment/derivative ID by concatenating the current
+      // moment/derivative ID elements with the next ID element.
+      MomentDerivativeID next_id;
+      next_id.reserve(curr_id.size() + 1);
+      next_id.insert(next_id.end(), curr_id.begin(), curr_id.end());
+      next_id.emplace_back(esets[es_ind], order);
+
+      // Recurse over the next possible ID elements.
+      get_moment_derivative_ids_aux(esets, es_ind + 1, max_order - order,
+                                    next_id, ids);
+    }
+  }
+}
+
+Vector<MomentDerivativeID> get_moment_derivative_ids(
+    const Vector<EdgeSet>& esets, int max_order) {
+  Vector<MomentDerivativeID> ids;
+
+  // Manually create the "empty" moment/derivative ID (i.e. the partial
+  // likelihood ID).
+  ids.emplace_back();
+
+  // Start the recursion over the multiple edge sets and orders.
+  for (int order = 1; order <= max_order; ++order) {
+    for (std::size_t es_ind = 0; es_ind < esets.size(); ++es_ind) {
+      get_moment_derivative_ids_aux(
+          esets, es_ind + 1, max_order - order,
+          {MomentDerivativeIDElement(esets[es_ind], order)}, ids);
+    }
+  }
+
+  // Sort the moment/derivative IDs.
+  std::sort(ids.begin(), ids.end());
+
+  return ids;
+}
+
+template <typename Set>
+void print_id_element(const IDElement<Set>& id_elem) {
+  Rcpp::Rcout << "[";
+  print_set_label(id_elem.set());
+  Rcpp::Rcout << "-" << id_elem.order() << "]";
+}
+
+void print_moment_derivative_id(const MomentDerivativeID& id) {
+  Rcpp::Rcout << "< ";
+  for (std::size_t i = 0; i < id.size(); ++i) {
+    print_id_element(id[i]);
+    if (i < id.size() - 1) Rcpp::Rcout << " , ";
+  }
+  Rcpp::Rcout << " >";
+}
+
+// [[Rcpp::export]]
+int print_moment_derivative_ids(VectorVector<int> esets_inp, int max_order) {
+  Vector<EdgeSet> esets = create_edge_sets(esets_inp);
+  Vector<MomentDerivativeID> ids = get_moment_derivative_ids(esets, max_order);
+
+  for (const auto& id : ids) {
+    print_moment_derivative_id(id);
+    Rcpp::Rcout << std::endl;
+  }
+
+  return ids.size();
+}
+
+////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// LIST IDS //////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -438,13 +542,6 @@ Vector<ListID> get_list_ids(const Vector<PartitionSet>& psets, int max_order) {
             });
 
   return ids;
-}
-
-template <typename Set>
-void print_id_element(const IDElement<Set>& id_elem) {
-  Rcpp::Rcout << "[";
-  print_set_label(id_elem.set());
-  Rcpp::Rcout << "-" << id_elem.order() << "]";
 }
 
 void print_list_id_elems(const ListID& id) {
