@@ -776,7 +776,7 @@ void find_connected_moment_derivative_ids_aux(
     if (!insert_results.second)
       insert_results.first->second += curr_it->order();
 
-    // Recurse over the next list ID elements.
+    // Recurse over the next list ID element.
     find_connected_moment_derivative_ids_aux(list_id, esets, curr_it + 1,
                                              next_eset_labels_orders, md_ids);
   }
