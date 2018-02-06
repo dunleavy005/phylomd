@@ -74,10 +74,10 @@ Vector<arma::cube> ctmc_moments_Q_derivatives_aux(const arma::vec& t,
   outp.reserve(t.n_elem);
 
   // Initialize the counting tables.
-  int max_order = *std::max_element(max_orders.begin(), max_orders.end());
-  arma::vec factorial = factorial_table(max_order);
+  int max_max_order = *std::max_element(max_orders.begin(), max_orders.end());
+  arma::vec factorial = factorial_table(max_max_order);
   arma::mat stirling_num =
-      (mode == Mode::MOMENTS) ? stirling_num_table(max_order) : arma::mat();
+      (mode == Mode::MOMENTS) ? stirling_num_table(max_max_order) : arma::mat();
 
   for (arma::uword i = 0; i < t.n_elem; ++i) {
     // Construct the auxiliary matrix `A`.
