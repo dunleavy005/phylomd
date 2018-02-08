@@ -126,6 +126,9 @@ arma::cube ctmc_t_derivatives_aux(double t, const arma::mat& Q, int max_order) {
   // Compute CTMC branch length derivatives associated with the branch length
   // `t`.
   arma::cube ctmc_ds(Q.n_rows, Q.n_cols, max_order + 1, arma::fill::zeros);
+
+  // Store the zeroth CTMC moment or rate matrix derivative (i.e. the transition
+  // probability matrix).
   ctmc_ds.slice(0) = arma::expmat(Q * t);
 
   for (int i = 1; i < max_order + 1; ++i) {
