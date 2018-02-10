@@ -810,7 +810,8 @@ int print_nlist_recursion_info(VectorVector<int> esets_inp, int max_order,
 
 void find_connected_moment_derivative_ids_aux(
     const ListID& list_id, const Vector<EdgeSet>& esets,
-    ListID::const_iterator curr_it, const Map<int, int>& eset_labels_orders,
+    ListID::const_iterator curr_it, int curr_order,
+    const Map<int, int>& eset_labels_orders,
     Vector<MomentDerivativeID>& md_ids) {
   // If we have traversed over all the list ID elements, then cache the current
   // moment/derivative ID and exit the function.
@@ -831,24 +832,30 @@ void find_connected_moment_derivative_ids_aux(
   // element.
   for (auto eset_label : curr_it->set().label()) {
     // Construct the next (`eset_label`, `order`) map by inserting the current
-    // (`eset_label`, `order`) pair into the current map.
+    // (`eset_label`, 1) pair into the current map.
     Map<int, int> next_eset_labels_orders = eset_labels_orders;
-    auto insert_results =
-        next_eset_labels_orders.emplace(eset_label, curr_it->order());
-    if (!insert_results.second)
-      insert_results.first->second += curr_it->order();
+    auto insert_results = next_eset_labels_orders.emplace(eset_label, 1);
+    if (!insert_results.second) insert_results.first->second += 1;
 
-    // Recurse over the next list ID element.
-    find_connected_moment_derivative_ids_aux(list_id, esets, curr_it + 1,
-                                             next_eset_labels_orders, md_ids);
+    // Is the current order equal to the order of the current list ID element?
+    if (curr_order == curr_it->order()) {
+      // If so, recurse over the next list ID element.
+      find_connected_moment_derivative_ids_aux(list_id, esets, curr_it + 1, 1,
+                                               next_eset_labels_orders, md_ids);
+    } else {
+      // Otherwise, recurse over the next order.
+      find_connected_moment_derivative_ids_aux(list_id, esets, curr_it,
+                                               curr_order + 1,
+                                               next_eset_labels_orders, md_ids);
+    }
   }
 }
 
 Vector<MomentDerivativeID> find_connected_moment_derivative_ids(
     const ListID& list_id, const Vector<EdgeSet>& esets) {
   Vector<MomentDerivativeID> md_ids;
-  find_connected_moment_derivative_ids_aux(list_id, esets,
-                                           list_id.elems().begin(), {}, md_ids);
+  find_connected_moment_derivative_ids_aux(
+      list_id, esets, list_id.elems().begin(), 1, {}, md_ids);
 
   // Keep only the unique moment/derivative IDs.
   std::sort(md_ids.begin(), md_ids.end());
