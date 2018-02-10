@@ -824,7 +824,7 @@ void find_connected_moment_derivative_ids_aux(
                               eset_label_order.second);
     }
 
-    md_ids.push_back(curr_md_id);
+    md_ids.push_back(std::move(curr_md_id));
     return;
   }
 
