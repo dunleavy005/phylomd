@@ -655,8 +655,8 @@ EdgeList::init_recursion_info_inds() const {
     // partition set starts.)
     auto end_it = std::find_if(
         begin_it, recursion_info_.end(),
-        [&](const std::tuple<const ListIDElement&, int, int>& tup) {
-          return std::get<0>(tup).set() != curr_pset;
+        [&](const std::tuple<const ListIDElement&, int, int>& ri_tup) {
+          return std::get<0>(ri_tup).set() != curr_pset;
         });
 
     // Cache the start/end indices associated with the current unique partition
@@ -686,10 +686,10 @@ int print_elist_recursion_info(VectorVector<int> esets_inp, int max_order,
   print_list_id_elems(elist.id());
   Rcpp::Rcout << "\n" << std::endl;
 
-  for (const auto& tup : elist.recursion_info()) {
-    const ListIDElement& curr_id_elem = std::get<0>(tup);
-    int nlist_ind = std::get<1>(tup);
-    int choose_coef = std::get<2>(tup);
+  for (const auto& ri_tup : elist.recursion_info()) {
+    const ListIDElement& curr_id_elem = std::get<0>(ri_tup);
+    int nlist_ind = std::get<1>(ri_tup);
+    int choose_coef = std::get<2>(ri_tup);
 
     print_id_element(curr_id_elem);
     Rcpp::Rcout << " ----- ";
@@ -716,11 +716,12 @@ int print_elist_recursion_info_inds(VectorVector<int> esets_inp, int max_order,
 
   for (const auto& pset_inds : elist.recursion_info_inds()) {
     const PartitionSet& pset = pset_inds.first;
-    const std::pair<int, int>& inds = pset_inds.second;
+    int begin_ind, end_ind;
+    std::tie(begin_ind, end_ind) = pset_inds.second;
 
     print_set_label(pset);
     Rcpp::Rcout << " ----- ";
-    Rcpp::Rcout << inds.first << "," << inds.second << std::endl;
+    Rcpp::Rcout << begin_ind << "," << end_ind << std::endl;
   }
 
   return elist.recursion_info_inds().size();
@@ -802,10 +803,10 @@ int print_nlist_recursion_info(VectorVector<int> esets_inp, int max_order,
   print_list_id_elems(nlist.id());
   Rcpp::Rcout << "\n" << std::endl;
 
-  for (const auto& tup : nlist.recursion_info()) {
-    int left_elist_ind = std::get<0>(tup);
-    int right_elist_ind = std::get<1>(tup);
-    int choose_coef = std::get<2>(tup);
+  for (const auto& ri_tup : nlist.recursion_info()) {
+    int left_elist_ind = std::get<0>(ri_tup);
+    int right_elist_ind = std::get<1>(ri_tup);
+    int choose_coef = std::get<2>(ri_tup);
 
     print_list_id_elems(ids[left_elist_ind]);
     Rcpp::Rcout << " ----- ";
