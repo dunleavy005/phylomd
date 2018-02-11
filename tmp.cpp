@@ -160,6 +160,7 @@ class EdgeList {
   // stores the related counting coefficient.
   Vector<std::tuple<const ListIDElement&, int, int>> recursion_info_;
   Map<Ref<const PartitionSet>, std::pair<int, int>> recursion_info_inds_;
+  arma::mat elems_;
 
   void init_recursion_info_aux(
       const Vector<ListID>& ids, const arma::mat& choose,
@@ -170,10 +171,15 @@ class EdgeList {
       const;
 
  public:
-  EdgeList(const ListID& id, const Vector<ListID>& ids, const arma::mat& choose)
+  EdgeList(const ListID& id, const Vector<ListID>& ids, const arma::mat& choose,
+           int nrow, int ncol)
       : id_(id),
         recursion_info_(init_recursion_info(ids, choose)),
-        recursion_info_inds_(init_recursion_info_inds()) {}
+        recursion_info_inds_(init_recursion_info_inds()),
+        elems_(arma::mat(nrow, ncol, arma::fill::zeros)) {}
+
+  arma::mat& elems() { return elems_; }
+  const arma::mat& elems() const { return elems_; }
 
   const ListID& id() const { return id_; }
   const Vector<std::tuple<const ListIDElement&, int, int>>& recursion_info()
@@ -198,6 +204,7 @@ class NodeList {
   // list index associated with the right child edge, and the third element
   // stores the related counting coefficient.
   Vector<std::tuple<int, int, int>> recursion_info_;
+  arma::mat elems_;
 
   void init_recursion_info_aux(
       const Vector<ListID>& ids, const arma::mat& choose,
@@ -208,8 +215,14 @@ class NodeList {
       const Vector<ListID>& ids, const arma::mat& choose) const;
 
  public:
-  NodeList(const ListID& id, const Vector<ListID>& ids, const arma::mat& choose)
-      : id_(id), recursion_info_(init_recursion_info(ids, choose)) {}
+  NodeList(const ListID& id, const Vector<ListID>& ids, const arma::mat& choose,
+           int nrow, int ncol)
+      : id_(id),
+        recursion_info_(init_recursion_info(ids, choose)),
+        elems_(arma::mat(nrow, ncol, arma::fill::zeros)) {}
+
+  arma::mat& elems() { return elems_; }
+  const arma::mat& elems() const { return elems_; }
 
   const ListID& id() const { return id_; }
   const Vector<std::tuple<int, int, int>>& recursion_info() const {
@@ -667,7 +680,7 @@ int print_elist_recursion_info(VectorVector<int> esets_inp, int max_order,
   Vector<PartitionSet> psets = partition_edge_sets(esets);
   Vector<ListID> ids = get_list_ids(psets, max_order);
   arma::mat choose = choose_table(max_order);
-  EdgeList elist(ids[elist_ind], ids, choose);
+  EdgeList elist(ids[elist_ind], ids, choose, 0, 0);
 
   Rcpp::Rcout << "List ID Elements: ";
   print_list_id_elems(elist.id());
@@ -695,7 +708,7 @@ int print_elist_recursion_info_inds(VectorVector<int> esets_inp, int max_order,
   Vector<PartitionSet> psets = partition_edge_sets(esets);
   Vector<ListID> ids = get_list_ids(psets, max_order);
   arma::mat choose = choose_table(max_order);
-  EdgeList elist(ids[elist_ind], ids, choose);
+  EdgeList elist(ids[elist_ind], ids, choose, 0, 0);
 
   Rcpp::Rcout << "List ID Elements: ";
   print_list_id_elems(elist.id());
@@ -783,7 +796,7 @@ int print_nlist_recursion_info(VectorVector<int> esets_inp, int max_order,
   Vector<PartitionSet> psets = partition_edge_sets(esets);
   Vector<ListID> ids = get_list_ids(psets, max_order);
   arma::mat choose = choose_table(max_order);
-  NodeList nlist(ids[nlist_ind], ids, choose);
+  NodeList nlist(ids[nlist_ind], ids, choose, 0, 0);
 
   Rcpp::Rcout << "List ID Elements: ";
   print_list_id_elems(nlist.id());
