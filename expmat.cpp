@@ -181,3 +181,22 @@ arma::cube ctmc_reward_moments(double t, const arma::mat& Q, const arma::vec& w,
                                   Mode::REWARD_MOMENTS);
 }
 
+// [[Rcpp::export]]
+arma::cube ctmc_Q_derivatives(double t, const arma::mat& Q, const arma::mat& dQ,
+                              int max_order) {
+  if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
+  if (arma::size(Q) != arma::size(dQ))
+    Rcpp::stop("'Q' and 'dQ' must have the same dimensions.");
+  if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
+
+  return ctmc_moments_derivatives(t, Q, dQ, max_order, Mode::Q_DERIVATIVES);
+}
+
+// [[Rcpp::export]]
+arma::cube ctmc_t_derivatives(double t, const arma::mat& Q, int max_order) {
+  if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
+  if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
+
+  return ctmc_moments_derivatives(t, Q, arma::mat(), max_order,
+                                  Mode::T_DERIVATIVES);
+}
