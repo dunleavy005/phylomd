@@ -60,7 +60,7 @@ arma::vec factorial_table(int n) {
 }
 
 
-enum class Mode { MOMENTS, Q_DERIVATIVES, T_DERIVATIVES };
+enum class Mode { NSUBS_MOMENTS, REWARD_MOMENTS, Q_DERIVATIVES, T_DERIVATIVES };
 
 
 arma::cube ctmc_moments_Q_derivatives_aux(double t, const arma::mat& Q,
@@ -72,8 +72,9 @@ arma::cube ctmc_moments_Q_derivatives_aux(double t, const arma::mat& Q,
 
   // Initialize the counting tables.
   arma::vec factorial = factorial_table(max_order);
-  arma::mat stirling_num =
-      (mode == Mode::MOMENTS) ? stirling_num_table(max_order) : arma::mat();
+  arma::mat stirling_num = (mode == Mode::NSUBS_MOMENTS)
+                               ? stirling_num_table(max_order)
+                               : arma::mat();
 
   // Construct the auxiliary matrix `A`.
   // `A` is an upper block bidiagonal matrix of the form: (Q  B  0 ... 0)
@@ -106,15 +107,16 @@ arma::cube ctmc_moments_Q_derivatives_aux(double t, const arma::mat& Q,
     // factorials.
     integrals.slice(i) *= factorial(i);
 
-    if (mode == Mode::MOMENTS) {
-      // Mode 1: MOMENTS
+    if (mode == Mode::NSUBS_MOMENTS) {
+      // Mode 1: NSUBS_MOMENTS
       // Calculate the raw moments using the factorial moments and Stirling
       // numbers.
       for (int j = 1; j < i + 1; ++j) {
         ctmc_mds.slice(i) += integrals.slice(j) * stirling_num(i, j);
       }
     } else {
-      // Mode 2: Q_DERIVATIVES
+      // Mode 2: REWARD_MOMENTS
+      // Mode 3: Q_DERIVATIVES
       ctmc_mds.slice(i) = std::move(integrals.slice(i));
     }
   }
@@ -141,12 +143,13 @@ arma::cube ctmc_t_derivatives_aux(double t, const arma::mat& Q, int max_order) {
 arma::cube ctmc_moments_derivatives(double t, const arma::mat& Q,
                                     const arma::mat& B, int max_order,
                                     Mode mode) {
-  if (mode == Mode::MOMENTS || mode == Mode::Q_DERIVATIVES) {
-    // Mode 1: MOMENTS
-    // Mode 2: Q_DERIVATIVES
+  if (mode != Mode::T_DERIVATIVES) {
+    // Mode 1: NSUBS_MOMENTS
+    // Mode 2: REWARD_MOMENTS
+    // Mode 3: Q_DERIVATIVES
     return ctmc_moments_Q_derivatives_aux(t, Q, B, max_order, mode);
   } else {
-    // Mode 3: T_DERIVATIVES
+    // Mode 4: T_DERIVATIVES
     return ctmc_t_derivatives_aux(t, Q, max_order);
   }
 }
@@ -155,17 +158,26 @@ arma::cube ctmc_moments_derivatives(double t, const arma::mat& Q,
 
 
 
-
-
 // [[Rcpp::export]]
-arma::cube ctmc_moments_wrapper(double t, const arma::mat& rate_mat,
-                                const arma::mat& meat_mat, int max_order) {
-  return ctmc_moments_Q_derivatives_aux(t, rate_mat, meat_mat, max_order, Mode::MOMENTS);
+arma::cube ctmc_nsubs_moments(double t, const arma::mat& Q, const arma::mat& L,
+                              int max_order) {
+  if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
+  if (arma::size(Q) != arma::size(L))
+    Rcpp::stop("'Q' and 'L' must have the same dimensions.");
+  if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
+
+  return ctmc_moments_derivatives(t, Q, Q % L, max_order, Mode::NSUBS_MOMENTS);
 }
 
-
 // [[Rcpp::export]]
-arma::cube ctmc_derivatives_wrapper(double t, const arma::mat& rate_mat,
-                                    const arma::mat& meat_mat, int max_order) {
-  return ctmc_moments_Q_derivatives_aux(t, rate_mat, meat_mat, max_order, Mode::Q_DERIVATIVES);
+arma::cube ctmc_reward_moments(double t, const arma::mat& Q, const arma::vec& w,
+                               int max_order) {
+  if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
+  if (Q.n_rows != w.n_elem)
+    Rcpp::stop("'Q' and 'w' must have compatible dimensions.");
+  if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
+
+  return ctmc_moments_derivatives(t, Q, arma::diagmat(w), max_order,
+                                  Mode::REWARD_MOMENTS);
 }
+
