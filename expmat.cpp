@@ -156,6 +156,103 @@ arma::cube ctmc_moments_derivatives(double t, const arma::mat& Q,
 
 
 
+// [[Rcpp::export]]
+Rcpp::List GTR(double rAC, double rAG, double rAT, double rCG, double rCT,
+               double rGT, const arma::vec& pi, bool scale = true) {
+  for (auto r : {rAC, rAG, rAT, rCG, rCT, rGT}) {
+    if (r < 0.0) Rcpp::stop("The rate parameters cannot be less than 0.");
+  }
+  if (pi.n_elem != 4 || arma::any(pi < 0.0) ||
+      std::fabs(arma::sum(pi) - 1.0) >= std::numeric_limits<double>::epsilon())
+    Rcpp::stop("'pi' must be an appropriate DNA frequency distribution.");
+
+  // Specify the CTMC states and create the GTR rate matrix.
+  Vector<std::string> states = {"A", "C", "G", "T"};
+  arma::mat Q = {{-rAC * pi(1) - rAG * pi(2) - rAT * pi(3), rAC * pi(1),
+                  rAG * pi(2), rAT * pi(3)},
+                 {rAC * pi(0), -rAC * pi(0) - rCG * pi(2) - rCT * pi(3),
+                  rCG * pi(2), rCT * pi(3)},
+                 {rAG * pi(0), rCG * pi(1),
+                  -rAG * pi(0) - rCG * pi(1) - rGT * pi(3), rGT * pi(3)},
+                 {rAT * pi(0), rCT * pi(1), rGT * pi(2),
+                  -rAT * pi(0) - rCT * pi(1) - rGT * pi(2)}};
+
+  // Differentiate the rate matrix with respect to the GTR rate parameters.
+  arma::mat d_rAC = {
+      {-pi(1), pi(1), 0, 0}, {pi(0), -pi(0), 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
+  arma::mat d_rAG = {
+      {-pi(2), 0, pi(2), 0}, {0, 0, 0, 0}, {pi(0), 0, -pi(0), 0}, {0, 0, 0, 0}};
+  arma::mat d_rAT = {
+      {-pi(3), 0, 0, pi(3)}, {0, 0, 0, 0}, {0, 0, 0, 0}, {pi(0), 0, 0, -pi(0)}};
+  arma::mat d_rCG = {
+      {0, 0, 0, 0}, {0, -pi(2), pi(2), 0}, {0, pi(1), -pi(1), 0}, {0, 0, 0, 0}};
+  arma::mat d_rCT = {
+      {0, 0, 0, 0}, {0, -pi(3), 0, pi(3)}, {0, 0, 0, 0}, {0, pi(1), 0, -pi(1)}};
+  arma::mat d_rGT = {
+      {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, -pi(3), pi(3)}, {0, 0, pi(2), -pi(2)}};
+
+  // Should time be specified in terms of the expected number of CTMC
+  // substitutions per site?
+  if (scale) {
+    double scaler = arma::dot(pi, -Q.diag());
+    Q /= scaler;
+    d_rAC /= scaler;
+    d_rAG /= scaler;
+    d_rAT /= scaler;
+    d_rCG /= scaler;
+    d_rCT /= scaler;
+    d_rGT /= scaler;
+  }
+
+  // Construct the S3 substitution model object.
+  Rcpp::List subst_mod = Rcpp::List::create(
+      Rcpp::Named("states") = states, Rcpp::Named("Q") = Q,
+      Rcpp::Named("d_rAC") = d_rAC, Rcpp::Named("d_rAG") = d_rAG,
+      Rcpp::Named("d_rAT") = d_rAT, Rcpp::Named("d_rCG") = d_rCG,
+      Rcpp::Named("d_rCT") = d_rCT, Rcpp::Named("d_rGT") = d_rGT);
+  subst_mod.attr("class") = Vector<std::string>({"GTR", "substitution.model"});
+
+  return subst_mod;
+}
+
+// [[Rcpp::export]]
+Rcpp::List JC69(double mu, bool scale = true) {
+  if (mu < 0.0) Rcpp::stop("The rate parameter cannot be less than 0.");
+
+  // Specify the CTMC states and create the JC69 rate matrix.
+  Vector<std::string> states = {"A", "C", "G", "T"};
+  arma::mat Q = {{-3 * mu / 4, mu / 4, mu / 4, mu / 4},
+                 {mu / 4, -3 * mu / 4, mu / 4, mu / 4},
+                 {mu / 4, mu / 4, -3 * mu / 4, mu / 4},
+                 {mu / 4, mu / 4, mu / 4, -3 * mu / 4}};
+
+  // Differentiate the rate matrix with respect to the JC69 rate parameter.
+  arma::mat d_mu = {{-3.0 / 4, 1.0 / 4, 1.0 / 4, 1.0 / 4},
+                    {1.0 / 4, -3.0 / 4, 1.0 / 4, 1.0 / 4},
+                    {1.0 / 4, 1.0 / 4, -3.0 / 4, 1.0 / 4},
+                    {1.0 / 4, 1.0 / 4, 1.0 / 4, -3.0 / 4}};
+
+  // Should time be specified in terms of the expected number of CTMC
+  // substitutions per site?
+  if (scale) {
+    double scaler =
+        arma::dot(arma::vec({1.0 / 4, 1.0 / 4, 1.0 / 4, 1.0 / 4}), -Q.diag());
+    Q /= scaler;
+    d_mu /= scaler;
+  }
+
+  // Construct the S3 substitution model object.
+  Rcpp::List subst_mod =
+      Rcpp::List::create(Rcpp::Named("states") = states, Rcpp::Named("Q") = Q,
+                         Rcpp::Named("d_mu") = d_mu);
+  subst_mod.attr("class") = Vector<std::string>({"JC69", "substitution.model"});
+
+  return subst_mod;
+}
+
+
+
+
 
 
 // [[Rcpp::export]]
