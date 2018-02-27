@@ -385,43 +385,66 @@ Rcpp::List JC69(double mu, bool scale = true) {
 
 
 // [[Rcpp::export]]
-arma::cube ctmc_nsubs_moments(double t, const arma::mat& Q, const arma::mat& L,
-                              int max_order) {
+arma::cube ctmc_nsubs_moments(double t, const Rcpp::List& subst_mod,
+                              const arma::mat& L, int max_order) {
   if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
+  if (!subst_mod.inherits("substitution.model"))
+    Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
+  if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
+
+  const arma::mat& Q = subst_mod["Q"];
+
   if (arma::size(Q) != arma::size(L))
-    Rcpp::stop("'Q' and 'L' must have the same dimensions.");
-  if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
+    Rcpp::stop("The rate matrix and 'L' must have the same dimensions.");
 
   return ctmc_moments_derivatives(t, Q, Q % L, max_order, Mode::NSUBS_MOMENTS);
 }
 
 // [[Rcpp::export]]
-arma::cube ctmc_reward_moments(double t, const arma::mat& Q, const arma::vec& w,
-                               int max_order) {
+arma::cube ctmc_reward_moments(double t, const Rcpp::List& subst_mod,
+                               const arma::vec& w, int max_order) {
   if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
+  if (!subst_mod.inherits("substitution.model"))
+    Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
+  if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
+
+  const arma::mat& Q = subst_mod["Q"];
+
   if (Q.n_rows != w.n_elem)
-    Rcpp::stop("'Q' and 'w' must have compatible dimensions.");
-  if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
+    Rcpp::stop("The rate matrix and 'w' must have compatible dimensions.");
 
   return ctmc_moments_derivatives(t, Q, arma::diagmat(w), max_order,
                                   Mode::REWARD_MOMENTS);
 }
 
 // [[Rcpp::export]]
-arma::cube ctmc_Q_derivatives(double t, const arma::mat& Q, const arma::mat& dQ,
-                              int max_order) {
+arma::cube ctmc_Q_derivatives(double t, const Rcpp::List& subst_mod,
+                              const std::string& param_name, int max_order) {
   if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
-  if (arma::size(Q) != arma::size(dQ))
-    Rcpp::stop("'Q' and 'dQ' must have the same dimensions.");
-  if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
+  if (!subst_mod.inherits("substitution.model"))
+    Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
+  if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
+
+  std::string d_param_name = "d_" + param_name;
+
+  if (!subst_mod.containsElementNamed(d_param_name.c_str()))
+    Rcpp::stop("'param.name' is not a valid 'subst.mod' parameter name.");
+
+  const arma::mat& Q = subst_mod["Q"];
+  const arma::mat& dQ = subst_mod[d_param_name];
 
   return ctmc_moments_derivatives(t, Q, dQ, max_order, Mode::Q_DERIVATIVES);
 }
 
 // [[Rcpp::export]]
-arma::cube ctmc_t_derivatives(double t, const arma::mat& Q, int max_order) {
+arma::cube ctmc_t_derivatives(double t, const Rcpp::List& subst_mod,
+                              int max_order) {
   if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
-  if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
+  if (!subst_mod.inherits("substitution.model"))
+    Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
+  if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
+
+  const arma::mat& Q = subst_mod["Q"];
 
   return ctmc_moments_derivatives(t, Q, arma::mat(), max_order,
                                   Mode::T_DERIVATIVES);
