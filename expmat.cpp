@@ -157,6 +157,44 @@ arma::cube ctmc_moments_derivatives(double t, const arma::mat& Q,
 
 
 // [[Rcpp::export]]
+Rcpp::List F81(double mu, const arma::vec& pi, bool scale = true) {
+  if (mu < 0.0) Rcpp::stop("The rate parameter cannot be less than 0.");
+  if (pi.n_elem != 4 || arma::any(pi < 0.0) ||
+      std::fabs(arma::sum(pi) - 1.0) >= std::numeric_limits<double>::epsilon())
+    Rcpp::stop("'pi' must be an appropriate DNA frequency distribution.");
+
+  // Specify the CTMC states and create the F81 rate matrix.
+  Vector<std::string> states = {"A", "C", "G", "T"};
+  arma::mat Q = {
+      {-(pi(1) + pi(2) + pi(3)) * mu, pi(1) * mu, pi(2) * mu, pi(3) * mu},
+      {pi(0) * mu, -(pi(0) + pi(2) + pi(3)) * mu, pi(2) * mu, pi(3) * mu},
+      {pi(0) * mu, pi(1) * mu, -(pi(0) + pi(1) + pi(3)) * mu, pi(3) * mu},
+      {pi(0) * mu, pi(1) * mu, pi(2) * mu, -(pi(0) + pi(1) + pi(2)) * mu}};
+
+  // Differentiate the rate matrix with respect to the F81 rate parameter.
+  arma::mat d_mu = {{-(pi(1) + pi(2) + pi(3)), pi(1), pi(2), pi(3)},
+                    {pi(0), -(pi(0) + pi(2) + pi(3)), pi(2), pi(3)},
+                    {pi(0), pi(1), -(pi(0) + pi(1) + pi(3)), pi(3)},
+                    {pi(0), pi(1), pi(2), -(pi(0) + pi(1) + pi(2))}};
+
+  // Should time be specified in terms of the expected number of CTMC
+  // substitutions per site?
+  if (scale) {
+    double scaler = arma::dot(pi, -Q.diag());
+    Q /= scaler;
+    d_mu /= scaler;
+  }
+
+  // Construct the S3 substitution model object.
+  Rcpp::List subst_mod =
+      Rcpp::List::create(Rcpp::Named("states") = states, Rcpp::Named("Q") = Q,
+                         Rcpp::Named("d_mu") = d_mu);
+  subst_mod.attr("class") = Vector<std::string>({"F81", "substitution.model"});
+
+  return subst_mod;
+}
+
+// [[Rcpp::export]]
 Rcpp::List GTR(double rAC, double rAG, double rAT, double rCG, double rCT,
                double rGT, const arma::vec& pi, bool scale = true) {
   for (auto r : {rAC, rAG, rAT, rCG, rCT, rGT}) {
@@ -168,14 +206,14 @@ Rcpp::List GTR(double rAC, double rAG, double rAT, double rCG, double rCT,
 
   // Specify the CTMC states and create the GTR rate matrix.
   Vector<std::string> states = {"A", "C", "G", "T"};
-  arma::mat Q = {{-rAC * pi(1) - rAG * pi(2) - rAT * pi(3), rAC * pi(1),
-                  rAG * pi(2), rAT * pi(3)},
-                 {rAC * pi(0), -rAC * pi(0) - rCG * pi(2) - rCT * pi(3),
-                  rCG * pi(2), rCT * pi(3)},
-                 {rAG * pi(0), rCG * pi(1),
-                  -rAG * pi(0) - rCG * pi(1) - rGT * pi(3), rGT * pi(3)},
-                 {rAT * pi(0), rCT * pi(1), rGT * pi(2),
-                  -rAT * pi(0) - rCT * pi(1) - rGT * pi(2)}};
+  arma::mat Q = {{-pi(1) * rAC - pi(2) * rAG - pi(3) * rAT, pi(1) * rAC,
+                  pi(2) * rAG, pi(3) * rAT},
+                 {pi(0) * rAC, -pi(0) * rAC - pi(2) * rCG - pi(3) * rCT,
+                  pi(2) * rCG, pi(3) * rCT},
+                 {pi(0) * rAG, pi(1) * rCG,
+                  -pi(0) * rAG - pi(1) * rCG - pi(3) * rGT, pi(3) * rGT},
+                 {pi(0) * rAT, pi(1) * rCT, pi(2) * rGT,
+                  -pi(0) * rAT - pi(1) * rCT - pi(2) * rGT}};
 
   // Differentiate the rate matrix with respect to the GTR rate parameters.
   arma::mat d_rAC = {
@@ -216,27 +254,118 @@ Rcpp::List GTR(double rAC, double rAG, double rAT, double rCG, double rCT,
 }
 
 // [[Rcpp::export]]
+Rcpp::List HKY85(double alpha, double beta, const arma::vec& pi,
+                 bool scale = true) {
+  for (auto r : {alpha, beta}) {
+    if (r < 0.0) Rcpp::stop("The rate parameters cannot be less than 0.");
+  }
+  if (pi.n_elem != 4 || arma::any(pi < 0.0) ||
+      std::fabs(arma::sum(pi) - 1.0) >= std::numeric_limits<double>::epsilon())
+    Rcpp::stop("'pi' must be an appropriate DNA frequency distribution.");
+
+  // Specify the CTMC states and create the HKY85 rate matrix.
+  Vector<std::string> states = {"A", "C", "G", "T"};
+  arma::mat Q = {{-pi(2) * alpha - (pi(1) + pi(3)) * beta, pi(1) * beta,
+                  pi(2) * alpha, pi(3) * beta},
+                 {pi(0) * beta, -pi(3) * alpha - (pi(0) + pi(2)) * beta,
+                  pi(2) * beta, pi(3) * alpha},
+                 {pi(0) * alpha, pi(1) * beta,
+                  -pi(0) * alpha - (pi(1) + pi(3)) * beta, pi(3) * beta},
+                 {pi(0) * beta, pi(1) * alpha, pi(2) * beta,
+                  -pi(1) * alpha - (pi(0) + pi(2)) * beta}};
+
+  // Differentiate the rate matrix with respect to the HKY85 rate parameters.
+  arma::mat d_alpha = {{-pi(2), 0, pi(2), 0},
+                       {0, -pi(3), 0, pi(3)},
+                       {pi(0), 0, -pi(0), 0},
+                       {0, pi(1), 0, -pi(1)}};
+  arma::mat d_beta = {{-(pi(1) + pi(3)), pi(1), 0, pi(3)},
+                      {pi(0), -(pi(0) + pi(2)), pi(2), 0},
+                      {0, pi(1), -(pi(1) + pi(3)), pi(3)},
+                      {pi(0), 0, pi(2), -(pi(0) + pi(2))}};
+
+  // Should time be specified in terms of the expected number of CTMC
+  // substitutions per site?
+  if (scale) {
+    double scaler = arma::dot(pi, -Q.diag());
+    Q /= scaler;
+    d_alpha /= scaler;
+    d_beta /= scaler;
+  }
+
+  // Construct the S3 substitution model object.
+  Rcpp::List subst_mod = Rcpp::List::create(
+      Rcpp::Named("states") = states, Rcpp::Named("Q") = Q,
+      Rcpp::Named("d_alpha") = d_alpha, Rcpp::Named("d_beta") = d_beta);
+  subst_mod.attr("class") =
+      Vector<std::string>({"HKY85", "substitution.model"});
+
+  return subst_mod;
+}
+
+// [[Rcpp::export]]
+Rcpp::List K80(double alpha, double beta, bool scale = true) {
+  for (auto r : {alpha, beta}) {
+    if (r < 0.0) Rcpp::stop("The rate parameters cannot be less than 0.");
+  }
+
+  // Specify the CTMC states and create the K80 rate matrix.
+  Vector<std::string> states = {"A", "C", "G", "T"};
+  arma::mat Q = {
+      {-0.25 * alpha - 0.5 * beta, 0.25 * beta, 0.25 * alpha, 0.25 * beta},
+      {0.25 * beta, -0.25 * alpha - 0.5 * beta, 0.25 * beta, 0.25 * alpha},
+      {0.25 * alpha, 0.25 * beta, -0.25 * alpha - 0.5 * beta, 0.25 * beta},
+      {0.25 * beta, 0.25 * alpha, 0.25 * beta, -0.25 * alpha - 0.5 * beta}};
+
+  // Differentiate the rate matrix with respect to the K80 rate parameters.
+  arma::mat d_alpha = {{-0.25, 0, 0.25, 0},
+                       {0, -0.25, 0, 0.25},
+                       {0.25, 0, -0.25, 0},
+                       {0, 0.25, 0, -0.25}};
+  arma::mat d_beta = {{-0.5, 0.25, 0, 0.25},
+                      {0.25, -0.5, 0.25, 0},
+                      {0, 0.25, -0.5, 0.25},
+                      {0.25, 0, 0.25, -0.5}};
+
+  // Should time be specified in terms of the expected number of CTMC
+  // substitutions per site?
+  if (scale) {
+    double scaler = arma::dot(arma::vec({0.25, 0.25, 0.25, 0.25}), -Q.diag());
+    Q /= scaler;
+    d_alpha /= scaler;
+    d_beta /= scaler;
+  }
+
+  // Construct the S3 substitution model object.
+  Rcpp::List subst_mod = Rcpp::List::create(
+      Rcpp::Named("states") = states, Rcpp::Named("Q") = Q,
+      Rcpp::Named("d_alpha") = d_alpha, Rcpp::Named("d_beta") = d_beta);
+  subst_mod.attr("class") = Vector<std::string>({"K80", "substitution.model"});
+
+  return subst_mod;
+}
+
+// [[Rcpp::export]]
 Rcpp::List JC69(double mu, bool scale = true) {
   if (mu < 0.0) Rcpp::stop("The rate parameter cannot be less than 0.");
 
   // Specify the CTMC states and create the JC69 rate matrix.
   Vector<std::string> states = {"A", "C", "G", "T"};
-  arma::mat Q = {{-3 * mu / 4, mu / 4, mu / 4, mu / 4},
-                 {mu / 4, -3 * mu / 4, mu / 4, mu / 4},
-                 {mu / 4, mu / 4, -3 * mu / 4, mu / 4},
-                 {mu / 4, mu / 4, mu / 4, -3 * mu / 4}};
+  arma::mat Q = {{-0.75 * mu, 0.25 * mu, 0.25 * mu, 0.25 * mu},
+                 {0.25 * mu, -0.75 * mu, 0.25 * mu, 0.25 * mu},
+                 {0.25 * mu, 0.25 * mu, -0.75 * mu, 0.25 * mu},
+                 {0.25 * mu, 0.25 * mu, 0.25 * mu, -0.75 * mu}};
 
   // Differentiate the rate matrix with respect to the JC69 rate parameter.
-  arma::mat d_mu = {{-3.0 / 4, 1.0 / 4, 1.0 / 4, 1.0 / 4},
-                    {1.0 / 4, -3.0 / 4, 1.0 / 4, 1.0 / 4},
-                    {1.0 / 4, 1.0 / 4, -3.0 / 4, 1.0 / 4},
-                    {1.0 / 4, 1.0 / 4, 1.0 / 4, -3.0 / 4}};
+  arma::mat d_mu = {{-0.75, 0.25, 0.25, 0.25},
+                    {0.25, -0.75, 0.25, 0.25},
+                    {0.25, 0.25, -0.75, 0.25},
+                    {0.25, 0.25, 0.25, -0.75}};
 
   // Should time be specified in terms of the expected number of CTMC
   // substitutions per site?
   if (scale) {
-    double scaler =
-        arma::dot(arma::vec({1.0 / 4, 1.0 / 4, 1.0 / 4, 1.0 / 4}), -Q.diag());
+    double scaler = arma::dot(arma::vec({0.25, 0.25, 0.25, 0.25}), -Q.diag());
     Q /= scaler;
     d_mu /= scaler;
   }
