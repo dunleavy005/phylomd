@@ -462,8 +462,8 @@ Vector<MomentDerivativeID> get_moment_derivative_ids(
   ids.emplace_back();
 
   // Start the recursion over the multiple edge sets and orders.
-  for (int order = 1; order <= max_order; ++order) {
-    for (std::size_t es_ind = 0; es_ind < esets.size(); ++es_ind) {
+  for (std::size_t es_ind = 0; es_ind < esets.size(); ++es_ind) {
+    for (int order = 1; order <= max_order; ++order) {
       get_moment_derivative_ids_aux(
           esets, es_ind + 1, max_order - order,
           {MomentDerivativeIDElement(esets[es_ind], order)}, ids);
@@ -518,10 +518,13 @@ void get_list_ids_aux(const Vector<PartitionSet>& psets,
   ids.emplace_back(curr_elems, curr_sum_orders);
 
   // Find the next list IDs.
-  // (Note: the loop body will not be entered if there are no more list IDs to
-  // find.)
-  for (int order = curr_elems.back().order(); order <= max_order; ++order) {
-    for (std::size_t ps_ind = curr_ps_ind; ps_ind < psets.size(); ++ps_ind) {
+  for (std::size_t ps_ind = curr_ps_ind; ps_ind < psets.size(); ++ps_ind) {
+    // Will the next list ID elements use the current partition set?
+    // If so, we iterate over a subset of orders.
+    // Otherwise, we iterate over all possible orders.
+    int begin_order = (ps_ind == curr_ps_ind) ? curr_elems.back().order() : 1;
+
+    for (int order = begin_order; order <= max_order; ++order) {
       // Form the next list ID by concatenating the current list ID elements
       // with the next ID element and creating a new sum-order map by updating
       // the current one.
@@ -549,8 +552,8 @@ Vector<ListID> get_list_ids(const Vector<PartitionSet>& psets, int max_order) {
                    Map<Ref<const PartitionSet>, int>());
 
   // Start the recursion over the multiple partition sets and orders.
-  for (int order = 1; order <= max_order; ++order) {
-    for (std::size_t ps_ind = 0; ps_ind < psets.size(); ++ps_ind) {
+  for (std::size_t ps_ind = 0; ps_ind < psets.size(); ++ps_ind) {
+    for (int order = 1; order <= max_order; ++order) {
       get_list_ids_aux(psets, ps_ind, max_order - order,
                        {ListIDElement(psets[ps_ind], order)},
                        {{psets[ps_ind], order}}, ids);
