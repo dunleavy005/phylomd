@@ -1089,7 +1089,7 @@ Map<std::string, double> phylo_moments_derivatives(
   // distribution and the node lists at the root node.
   arma::vec phylo_mds(md_ids.size(), arma::fill::zeros);
   for (const auto& nlist : nlists) {
-    double md_part = arma::dot(pi, nlist.elems().col(root_node_ind);
+    double md_part = arma::dot(pi, nlist.elems().col(root_node_ind));
     Vector<MomentDerivativeID> conn_md_ids =
         find_connected_moment_derivative_ids(nlist.id(), esets);
 
