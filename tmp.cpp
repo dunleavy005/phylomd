@@ -972,9 +972,25 @@ void update_edge_lists(
   }
 }
 
+std::string create_moment_derivative_id_label(const MomentDerivativeID& md_id) {
+  std::string md_id_label;
+
+  // Loop through the ID elements and append label information to the output
+  // string.
+  for (auto it = md_id.begin(); it != md_id.end(); ++it) {
+    md_id_label += "(";
+    md_id_label += std::to_string(it->set().label() + 1);
+    md_id_label += "):";
+    md_id_label += std::to_string(it->order());
+    if (it != md_id.end() - 1) md_id_label += "--";
+  }
+
+  return md_id_label;
+}
+
 Map<std::string, double> phylo_moments_derivatives(
     const Rcpp::List& tree, const arma::mat& Q, const arma::mat& B,
-    const arma::vec& pi, VectorVector<int> esets_inp, int max_order, Mode mode,
+    const arma::vec& pi, VectorVector<int>& esets_inp, int max_order, Mode mode,
     const arma::ivec& tip_data) {
   // Extract the necessary elements from the tree object.
   arma::imat edge = tree["edge"];
@@ -1073,13 +1089,13 @@ Map<std::string, double> phylo_moments_derivatives(
   // distribution and the node lists at the root node.
   arma::vec phylo_mds(md_ids.size(), arma::fill::zeros);
   for (const auto& nlist : nlists) {
+    double md_part = arma::dot(pi, nlist.elems().col(root_node_ind);
     Vector<MomentDerivativeID> conn_md_ids =
         find_connected_moment_derivative_ids(nlist.id(), esets);
 
     for (const auto& conn_md_id : conn_md_ids) {
       int conn_md_id_ind = find_moment_derivative_id_index(md_ids, conn_md_id);
-      phylo_mds(conn_md_id_ind) +=
-          arma::dot(pi, nlist.elems().col(root_node_ind));
+      phylo_mds(conn_md_id_ind) += md_part;
     }
   }
 
@@ -1087,17 +1103,7 @@ Map<std::string, double> phylo_moments_derivatives(
   Map<std::string, double> phylo_mds_map;
   for (std::size_t i = 0; i < md_ids.size(); ++i) {
     // Create the moment/derivative ID label.
-    std::string md_id_label;
-    for (auto it = md_ids[i].begin(); it != md_ids[i].end(); ++it) {
-      const MomentDerivativeIDElement& curr_id_elem = *it;
-
-      md_id_label += "(";
-      md_id_label += std::to_string(curr_id_elem.set().label() + 1);
-      md_id_label += "):";
-      md_id_label += std::to_string(curr_id_elem.order());
-
-      if (it != md_ids[i].end() - 1) md_id_label += "--";
-    }
+    std::string md_id_label = create_moment_derivative_id_label(md_ids[i]);
 
     // Cache the moment/derivative.
     phylo_mds_map.emplace(std::move(md_id_label), phylo_mds(i));
