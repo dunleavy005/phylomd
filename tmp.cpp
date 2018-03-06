@@ -866,13 +866,12 @@ int print_nlist_recursion_info(VectorVector<int> esets_inp, int max_order,
 ////////////////////////////////////////////////////////////////////////////////
 
 void find_connected_moment_derivative_ids_aux(
-    const ListID& list_id, const Vector<EdgeSet>& esets,
-    ListID::const_iterator curr_it, int curr_order,
-    const Map<int, int>& eset_labels_orders,
+    const FlatListID& flat_list_id, const Vector<EdgeSet>& esets,
+    FlatListID::const_iterator curr_it, const Map<int, int>& eset_labels_orders,
     Vector<MomentDerivativeID>& md_ids) {
-  // If we have traversed over all the list ID elements, then cache the current
-  // moment/derivative ID and exit the function.
-  if (curr_it == list_id.elems().end()) {
+  // If we have traversed over all the flattened list ID elements, then cache
+  // the current moment/derivative ID and exit the function.
+  if (curr_it == flat_list_id.end()) {
     MomentDerivativeID curr_md_id;
     curr_md_id.reserve(eset_labels_orders.size());
 
@@ -885,8 +884,8 @@ void find_connected_moment_derivative_ids_aux(
     return;
   }
 
-  // Otherwise, loop over the possible edge set labels in the current list ID
-  // element.
+  // Otherwise, loop over the possible edge set labels in the current flattened
+  // list ID element.
   for (auto eset_label : curr_it->set().label()) {
     // Construct the next (`eset_label`, `order`) map by inserting the current
     // (`eset_label`, 1) pair into the current map.
@@ -894,25 +893,17 @@ void find_connected_moment_derivative_ids_aux(
     auto insert_results = next_eset_labels_orders.emplace(eset_label, 1);
     if (!insert_results.second) insert_results.first->second += 1;
 
-    // Is the current order equal to the order of the current list ID element?
-    if (curr_order == curr_it->order()) {
-      // If so, recurse over the next list ID element.
-      find_connected_moment_derivative_ids_aux(list_id, esets, curr_it + 1, 1,
-                                               next_eset_labels_orders, md_ids);
-    } else {
-      // Otherwise, recurse over the next order.
-      find_connected_moment_derivative_ids_aux(list_id, esets, curr_it,
-                                               curr_order + 1,
-                                               next_eset_labels_orders, md_ids);
-    }
+    // Recurse over the next flattened list ID element.
+    find_connected_moment_derivative_ids_aux(flat_list_id, esets, curr_it + 1,
+                                             next_eset_labels_orders, md_ids);
   }
 }
 
 Vector<MomentDerivativeID> find_connected_moment_derivative_ids(
-    const ListID& list_id, const Vector<EdgeSet>& esets) {
+    const FlatListID& flat_list_id, const Vector<EdgeSet>& esets) {
   Vector<MomentDerivativeID> md_ids;
-  find_connected_moment_derivative_ids_aux(
-      list_id, esets, list_id.elems().begin(), 1, {}, md_ids);
+  find_connected_moment_derivative_ids_aux(flat_list_id, esets,
+                                           flat_list_id.begin(), {}, md_ids);
 
   // Keep only the unique moment/derivative IDs.
   std::sort(md_ids.begin(), md_ids.end());
@@ -928,8 +919,12 @@ int print_connected_moment_derivative_ids(VectorVector<int> esets_inp,
   Vector<EdgeSet> esets = create_edge_sets(esets_inp);
   Vector<PartitionSet> psets = partition_edge_sets(esets);
   Vector<ListID> list_ids = get_list_ids(psets, max_order);
+  FlatListID flat_list_id;
+  for (const auto& id_elem : list_ids[list_ind]) {
+    flat_list_id.insert(flat_list_id.end(), id_elem.order(), id_elem.set());
+  }
   Vector<MomentDerivativeID> md_ids =
-      find_connected_moment_derivative_ids(list_ids[list_ind], esets);
+      find_connected_moment_derivative_ids(flat_list_id, esets);
 
   Rcpp::Rcout << "List ID Elements: ";
   print_list_id_elems(list_ids[list_ind]);
@@ -1009,6 +1004,27 @@ void update_edge_lists(
   }
 }
 
+int get_connected_counting_coef(const FlatMomentDerivativeID& flat_md_id,
+                                FlatListID& flat_list_id) {
+  int counting_coef = 0;
+
+  // Loop through the permutations of the flattened list ID and count those that
+  // are compatible with the flattened moment/derivative ID.
+  do {
+    bool is_compatible = std::equal(
+        flat_md_id.begin(), flat_md_id.end(), flat_list_id.begin(),
+        [](const FlatMomentDerivativeIDElement& flat_md_id_elem,
+           const FlatListIDElement& flat_list_id_elem) {
+          return std::binary_search(flat_list_id_elem.set().label().begin(),
+                                    flat_list_id_elem.set().label().end(),
+                                    flat_md_id_elem.set().label());
+        });
+    if (is_compatible) counting_coef += 1;
+  } while (std::next_permutation(flat_list_id.begin(), flat_list_id.end()));
+
+  return counting_coef;
+}
+
 std::string create_moment_derivative_id_label(const MomentDerivativeID& md_id) {
   std::string md_id_label;
 
@@ -1055,16 +1071,32 @@ Map<std::string, double> phylo_moments_derivatives(
       get_moment_derivative_ids(esets, max_order);
   Vector<ListID> list_ids = get_list_ids(psets, max_order);
 
+  // Flatten the moment/derivative IDs and list IDs.
   // Create the node lists and edge lists.
+  Vector<FlatMomentDerivativeID> flat_md_ids(md_ids.size());
+  Vector<FlatListID> flat_list_ids(list_ids.size());
+
   Vector<NodeList> nlists;
   nlists.reserve(list_ids.size());
   Vector<EdgeList> elists;
   elists.reserve(list_ids.size());
 
-  for (const auto& list_id : list_ids) {
-    nlists.emplace_back(list_id, list_ids, choose, Q.n_rows,
+  for (std::size_t i = 0; i < md_ids.size(); ++i) {
+    for (const auto& id_elem : md_ids[i]) {
+      flat_md_ids[i].insert(flat_md_ids[i].end(), id_elem.order(),
+                            id_elem.set());
+    }
+  }
+
+  for (std::size_t i = 0; i < list_ids.size(); ++i) {
+    for (const auto& id_elem : list_ids[i]) {
+      flat_list_ids[i].insert(flat_list_ids[i].end(), id_elem.order(),
+                              id_elem.set());
+    }
+
+    nlists.emplace_back(list_ids[i], list_ids, choose, Q.n_rows,
                         num_int_nodes + num_term_nodes);
-    elists.emplace_back(list_id, list_ids, choose, Q.n_rows, num_edges);
+    elists.emplace_back(list_ids[i], list_ids, choose, Q.n_rows, num_edges);
   }
 
   // Perform the postorder recursion.
@@ -1121,18 +1153,27 @@ Map<std::string, double> phylo_moments_derivatives(
   arma::uvec root_edge_inds = arma::find(edge.col(0) == root_node_ind);
   update_node_lists(root_node_ind, root_edge_inds, elists, nlists);
 
-  // Connect the list IDs to the moment/derivative IDs and calculate the
-  // moments/derivatives by accumulating dot products between the root
-  // distribution and the node lists at the root node.
+  // Calculate the moments/derivatives.
   arma::vec phylo_mds(md_ids.size(), arma::fill::zeros);
-  for (const auto& nlist : nlists) {
-    double md_part = arma::dot(pi, nlist.elems().col(root_node_ind));
-    Vector<MomentDerivativeID> conn_md_ids =
-        find_connected_moment_derivative_ids(nlist.id(), esets);
+  for (std::size_t i = 0; i < nlists.size(); ++i) {
+    // Compute the contribution from the current node list.
+    double md_part = arma::dot(pi, nlists[i].elems().col(root_node_ind));
 
+    // Identify the moment/derivative IDs connected to the current node list ID.
+    Vector<MomentDerivativeID> conn_md_ids =
+        find_connected_moment_derivative_ids(flat_list_ids[i], esets);
+
+    // Add the current node list contribution to the connected
+    // moments/derivatives.
     for (const auto& conn_md_id : conn_md_ids) {
       int conn_md_id_ind = find_moment_derivative_id_index(md_ids, conn_md_id);
-      phylo_mds(conn_md_id_ind) += md_part;
+
+      // Determine the connected counting coefficient.
+      int counting_coef = get_connected_counting_coef(
+          flat_md_ids[conn_md_id_ind], flat_list_ids[i]);
+
+      // Update the connected moment/derivative.
+      phylo_mds(conn_md_id_ind) += md_part * counting_coef;
     }
   }
 
