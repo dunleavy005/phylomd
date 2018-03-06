@@ -95,8 +95,21 @@ class IDElement {
   int order() const { return order_; }
 };
 
+template <typename Set>
+class FlatIDElement {
+ private:
+  Ref<const Set> set_;
+
+ public:
+  FlatIDElement(const Set& set) : set_(set) {}
+
+  const Set& set() const { return set_; }
+};
+
 typedef IDElement<EdgeSet> MomentDerivativeIDElement;
+typedef FlatIDElement<EdgeSet> FlatMomentDerivativeIDElement;
 typedef IDElement<PartitionSet> ListIDElement;
+typedef FlatIDElement<PartitionSet> FlatListIDElement;
 
 // This operator is needed for sorting list IDs.
 template <typename Set>
@@ -127,6 +140,31 @@ bool operator!=(const IDElement<Set>& lhs, const IDElement<Set>& rhs) {
   return !(lhs == rhs);
 }
 
+template <typename Set>
+bool operator<(const FlatIDElement<Set>& lhs, const FlatIDElement<Set>& rhs) {
+  return lhs.set() < rhs.set();
+}
+template <typename Set>
+bool operator==(const FlatIDElement<Set>& lhs, const FlatIDElement<Set>& rhs) {
+  return lhs.set() == rhs.set();
+}
+template <typename Set>
+bool operator>(const FlatIDElement<Set>& lhs, const FlatIDElement<Set>& rhs) {
+  return rhs < lhs;
+}
+template <typename Set>
+bool operator<=(const FlatIDElement<Set>& lhs, const FlatIDElement<Set>& rhs) {
+  return !(rhs < lhs);
+}
+template <typename Set>
+bool operator>=(const FlatIDElement<Set>& lhs, const FlatIDElement<Set>& rhs) {
+  return !(lhs < rhs);
+}
+template <typename Set>
+bool operator!=(const FlatIDElement<Set>& lhs, const FlatIDElement<Set>& rhs) {
+  return !(lhs == rhs);
+}
+
 
 typedef Vector<MomentDerivativeIDElement> MomentDerivativeID;
 
@@ -147,6 +185,9 @@ class ListID {
     return sum_orders_;
   }
 };
+
+typedef Vector<FlatMomentDerivativeIDElement> FlatMomentDerivativeID;
+typedef Vector<FlatListIDElement> FlatListID;
 
 
 class EdgeList {
