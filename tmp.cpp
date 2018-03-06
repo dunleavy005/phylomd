@@ -383,7 +383,7 @@ void partition_edge_sets_aux(const Vector<EdgeSet>& esets, std::size_t curr_ind,
       esets[curr_ind].elems().end(), std::back_inserter(diff_elems));
 
   // Recurse over the next edge set.
-  ++curr_ind;
+  curr_ind += 1;
   partition_edge_sets_aux(esets, curr_ind, intersect_label, intersect_elems,
                           psets);
   partition_edge_sets_aux(esets, curr_ind, curr_label, diff_elems, psets);
@@ -408,6 +408,7 @@ Vector<PartitionSet> partition_edge_sets(const Vector<EdgeSet>& esets) {
   psets.reserve(
       std::min((int)std::pow(2, esets.size()) - 1, (int)union_elems.size()));
   partition_edge_sets_aux(esets, 0, {}, union_elems, psets);
+  std::sort(psets.begin(), psets.end());
 
   return psets;
 }
@@ -479,10 +480,8 @@ void get_moment_derivative_ids_aux(const Vector<EdgeSet>& esets,
   ids.push_back(curr_id);
 
   // Find the next moment/derivative IDs.
-  // (Note: the loop body will not be entered if there are no more
-  // moment/derivative IDs to find.)
-  for (int order = 1; order <= max_order; ++order) {
-    for (std::size_t es_ind = curr_es_ind; es_ind < esets.size(); ++es_ind) {
+  for (std::size_t es_ind = curr_es_ind; es_ind < esets.size(); ++es_ind) {
+    for (int order = 1; order <= max_order; ++order) {
       // Form the next moment/derivative ID by concatenating the current
       // moment/derivative ID elements with the next ID element.
       MomentDerivativeID next_id;
@@ -513,9 +512,6 @@ Vector<MomentDerivativeID> get_moment_derivative_ids(
           {MomentDerivativeIDElement(esets[es_ind], order)}, ids);
     }
   }
-
-  // Sort the moment/derivative IDs.
-  std::sort(ids.begin(), ids.end());
 
   return ids;
 }
@@ -603,12 +599,6 @@ Vector<ListID> get_list_ids(const Vector<PartitionSet>& psets, int max_order) {
                        {{psets[ps_ind], order}}, ids);
     }
   }
-
-  // Sort the list IDs.
-  std::sort(ids.begin(), ids.end(),
-            [](const ListID& left_id, const ListID& right_id) {
-              return left_id.elems() < right_id.elems();
-            });
 
   return ids;
 }
