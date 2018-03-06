@@ -179,6 +179,9 @@ class ListID {
       : elems_(elems), sum_orders_(sum_orders) {}
 
   typedef Vector<ListIDElement>::const_iterator const_iterator;
+  const_iterator begin() const { return elems_.begin(); }
+  const_iterator end() const { return elems_.end(); }
+  std::size_t size() const { return elems_.size(); }
 
   const Vector<ListIDElement>& elems() const { return elems_; }
   const Map<Ref<const PartitionSet>, int>& sum_orders() const {
@@ -654,12 +657,12 @@ void EdgeList::init_recursion_info_aux(
     Vector<std::tuple<const ListIDElement&, int, int>>& recursion_info) const {
   // Loop through the unique ID elements in the edge list ID and cache the
   // corresponding recursion information 3-tuples.
-  for (auto curr_it = id_.elems().begin(); curr_it != id_.elems().end();) {
+  for (auto curr_it = id_.begin(); curr_it != id_.end();) {
     // Determine the node list ID elements associated with the child node.
     Vector<ListIDElement> nlist_id_elems;
-    nlist_id_elems.reserve(id_.elems().size() - 1);
+    nlist_id_elems.reserve(id_.size() - 1);
 
-    for (auto it = id_.elems().begin(); it != id_.elems().end(); ++it) {
+    for (auto it = id_.begin(); it != id_.end(); ++it) {
       // The node list ID elements should not include the current ID element.
       // (Note: we intentionally compare iterators for equality.)
       if (it != curr_it) nlist_id_elems.push_back(*it);
@@ -675,7 +678,7 @@ void EdgeList::init_recursion_info_aux(
     recursion_info.emplace_back(curr_id_elem, nlist_ind, choose_coef);
 
     // Find the next unique ID element in the edge list ID.
-    curr_it = find_next_id_elem(curr_it, id_.elems().end(), curr_id_elem);
+    curr_it = find_next_id_elem(curr_it, id_.end(), curr_id_elem);
   }
 }
 
@@ -683,7 +686,7 @@ Vector<std::tuple<const ListIDElement&, int, int>>
 EdgeList::init_recursion_info(const Vector<ListID>& ids,
                               const arma::mat& choose) const {
   Vector<std::tuple<const ListIDElement&, int, int>> recursion_info;
-  recursion_info.reserve(id_.elems().size());
+  recursion_info.reserve(id_.size());
   init_recursion_info_aux(ids, choose, recursion_info);
 
   return recursion_info;
@@ -788,9 +791,9 @@ void NodeList::init_recursion_info_aux(
     Vector<std::tuple<int, int, int>>& recursion_info) const {
   // Determine the edge list ID elements associated with the right child edge.
   Vector<ListIDElement> right_elist_id_elems;
-  right_elist_id_elems.reserve(id_.elems().size() - left_elist_id_elems.size());
-  std::set_difference(id_.elems().begin(), id_.elems().end(),
-                      left_elist_id_elems.begin(), left_elist_id_elems.end(),
+  right_elist_id_elems.reserve(id_.size() - left_elist_id_elems.size());
+  std::set_difference(id_.begin(), id_.end(), left_elist_id_elems.begin(),
+                      left_elist_id_elems.end(),
                       std::back_inserter(right_elist_id_elems));
 
   // Compute the edge list indices associated with both child edges.
@@ -811,7 +814,7 @@ void NodeList::init_recursion_info_aux(
   recursion_info.emplace_back(left_elist_ind, right_elist_ind, choose_coef);
 
   // Loop through the remaining unique ID elements in the node list ID.
-  for (auto it = curr_it; it != id_.elems().end();) {
+  for (auto it = curr_it; it != id_.end();) {
     // Determine the next possible edge list ID elements associated with the
     // left child edge.
     Vector<ListIDElement> next_left_elist_id_elems;
@@ -827,15 +830,15 @@ void NodeList::init_recursion_info_aux(
                             recursion_info);
 
     // Find the next unique ID element in the node list ID.
-    it = find_next_id_elem(it, id_.elems().end(), curr_id_elem);
+    it = find_next_id_elem(it, id_.end(), curr_id_elem);
   }
 }
 
 Vector<std::tuple<int, int, int>> NodeList::init_recursion_info(
     const Vector<ListID>& ids, const arma::mat& choose) const {
   Vector<std::tuple<int, int, int>> recursion_info;
-  recursion_info.reserve(std::pow(2, id_.elems().size()));
-  init_recursion_info_aux(ids, choose, id_.elems().begin(), {}, recursion_info);
+  recursion_info.reserve(std::pow(2, id_.size()));
+  init_recursion_info_aux(ids, choose, id_.begin(), {}, recursion_info);
 
   return recursion_info;
 }
