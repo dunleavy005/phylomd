@@ -942,10 +942,6 @@ int print_connected_moment_derivative_ids(VectorVector<int> esets_inp,
 ///////////////////////// PHYLO MOMENTS/DERIVATIVES ////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-//if (!tree.inherits("phylo")) Rcpp::stop("The tree object must be of class 'phylo'.");
-//if (tree.attr("order") != "cladewise") Rcpp::stop("The edge matrix must be in 'cladewise' order.");
-//if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
-
 void update_node_lists(int child_node_ind, const arma::uvec& child_edge_inds,
                        const Vector<EdgeList>& elists,
                        Vector<NodeList>& nlists) {
@@ -1042,15 +1038,11 @@ std::string create_moment_derivative_id_label(const MomentDerivativeID& md_id) {
 }
 
 Map<std::string, double> phylo_moments_derivatives(
-    const Rcpp::List& tree, const arma::mat& Q, const arma::mat& B,
+    arma::imat& edge, const Vector<std::string>& tip_labels, int num_int_nodes,
+    const arma::vec& edge_lengths, const arma::mat& Q, const arma::mat& B,
     const arma::vec& pi, VectorVector<int>& esets_inp, int max_order, Mode mode,
     const arma::ivec& tip_data) {
-  // Extract the necessary elements from the tree object.
-  arma::imat edge = tree["edge"];
-  const Vector<std::string>& tip_labels = tree["tip.label"];
-  const arma::vec& edge_lengths = tree["edge.length"];
-  int num_int_nodes = tree["Nnode"];
-
+  // Modify the edge matrix and create some useful variables.
   edge -= 1;
   int num_edges = edge.n_rows;
   int num_term_nodes = tip_labels.size();
@@ -1122,7 +1114,7 @@ Map<std::string, double> phylo_moments_derivatives(
       // list vector.)
 
       // Do we have observed data at the terminal nodes?
-      if (tip_data.n_elem > 0) {
+      if ((int)tip_data.n_elem == num_term_nodes) {
         nlists[0].elems()(tip_data(child_node_ind), child_node_ind) = 1;
       } else {
         nlists[0].elems().col(child_node_ind).fill(1);
@@ -1191,12 +1183,49 @@ Map<std::string, double> phylo_moments_derivatives(
 }
 
 // [[Rcpp::export]]
-Map<std::string, double> phylomd_wrap(const Rcpp::List& tree,
-                                      const arma::mat& Q, const arma::mat& B,
-                                      const arma::vec& pi,
-                                      VectorVector<int> esets_inp,
-                                      int max_order,
-                                      const arma::ivec& tip_data) {
-  return phylo_moments_derivatives(tree, Q, B, pi, esets_inp, max_order,
-                                   Mode::MOMENTS, tip_data);
+Map<std::string, double> phylo_nsubs_moments(
+    const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::mat& L,
+    VectorVector<int> edge_sets, int max_order,
+    const Vector<std::string>& tip_states) {
+  if (!tree.inherits("phylo"))
+    Rcpp::stop("'tree' must be an object of class 'phylo'.");
+  if (!tree.hasAttribute("order") ||
+      Rcpp::as<std::string>(tree.attr("order")) != "cladewise")
+    Rcpp::stop("The edge matrix must be in 'cladewise' order.");
+  if (!tree.containsElementNamed("edge.length"))
+    Rcpp::stop("'tree' must contain a vector of edge lengths.");
+  if (!subst_mod.inherits("substitution.model"))
+    Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
+  if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
+
+  arma::imat edge = tree["edge"];
+  const Vector<std::string>& tip_labels = tree["tip.label"];
+  int num_int_nodes = tree["Nnode"];
+  const arma::vec& edge_lengths = tree["edge.length"];
+  const Vector<std::string>& states = subst_mod["states"];
+  const arma::mat& Q = subst_mod["Q"];
+  const arma::vec& pi = subst_mod["pi"];
+
+  if (arma::size(Q) != arma::size(L))
+    Rcpp::stop("The rate matrix and 'L' must have the same dimensions.");
+  for (const auto& edge_set : edge_sets) {
+    for (auto edge_label : edge_set) {
+      if (edge_label < 1 || edge_label > (int)edge.n_rows)
+        Rcpp::stop("'edge.sets' must contain valid edges.");
+    }
+  }
+
+  arma::ivec tip_data(tip_states.size(), arma::fill::none);
+  for (std::size_t i = 0; i < tip_states.size(); ++i) {
+    auto find_it = std::find(states.begin(), states.end(), tip_states[i]);
+    if (find_it != states.end()) {
+      tip_data(i) = find_it - states.begin();
+    } else {
+      Rcpp::stop("'tip.states' must contain valid states.");
+    }
+  }
+
+  return phylo_moments_derivatives(edge, tip_labels, num_int_nodes,
+                                   edge_lengths, Q, Q % L, pi, edge_sets,
+                                   max_order, Mode::NSUBS_MOMENTS, tip_data);
 }
