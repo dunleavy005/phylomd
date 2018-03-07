@@ -1206,6 +1206,8 @@ Map<std::string, double> phylo_nsubs_moments(
   const arma::mat& Q = subst_mod["Q"];
   const arma::vec& pi = subst_mod["pi"];
 
+  if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
+    Rcpp::stop("'tree' must be a rooted tree.");
   if (arma::size(Q) != arma::size(L))
     Rcpp::stop("The rate matrix and 'L' must have the same dimensions.");
   for (const auto& edge_set : edge_sets) {
