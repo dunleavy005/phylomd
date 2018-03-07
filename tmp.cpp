@@ -1239,3 +1239,61 @@ Map<std::string, double> phylo_nsubs_moments(
 
   return moments;
 }
+
+// [[Rcpp::export]]
+Map<std::string, double> phylo_reward_moments(
+    const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::vec& w,
+    VectorVector<int> edge_sets, int max_order,
+    const Vector<std::string>& tip_states) {
+  if (!tree.inherits("phylo"))
+    Rcpp::stop("'tree' must be an object of class 'phylo'.");
+  if (!tree.hasAttribute("order") ||
+      Rcpp::as<std::string>(tree.attr("order")) != "cladewise")
+    Rcpp::stop("The edge matrix must be in 'cladewise' order.");
+  if (!tree.containsElementNamed("edge.length"))
+    Rcpp::stop("'tree' must contain a vector of edge lengths.");
+  if (!subst_mod.inherits("substitution.model"))
+    Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
+  if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
+
+  arma::imat edge = tree["edge"];
+  const Vector<std::string>& tip_labels = tree["tip.label"];
+  int num_int_nodes = tree["Nnode"];
+  const arma::vec& edge_lengths = tree["edge.length"];
+  const Vector<std::string>& states = subst_mod["states"];
+  const arma::mat& Q = subst_mod["Q"];
+  const arma::vec& pi = subst_mod["pi"];
+
+  if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
+    Rcpp::stop("'tree' must be a rooted tree.");
+  if (Q.n_rows != w.n_elem)
+    Rcpp::stop("The rate matrix and 'w' must have compatible dimensions.");
+  for (const auto& edge_set : edge_sets) {
+    for (auto edge_label : edge_set) {
+      if (edge_label < 1 || edge_label > (int)edge.n_rows)
+        Rcpp::stop("'edge.sets' must contain valid edges.");
+    }
+  }
+
+  arma::ivec tip_data(tip_states.size(), arma::fill::none);
+  for (std::size_t i = 0; i < tip_states.size(); ++i) {
+    auto find_it = std::find(states.begin(), states.end(), tip_states[i]);
+    if (find_it != states.end()) {
+      tip_data(i) = find_it - states.begin();
+    } else {
+      Rcpp::stop("'tip.states' must contain valid states.");
+    }
+  }
+
+  // Divide the computed moments by the likelihood.
+  Map<std::string, double> moments = phylo_moments_derivatives(
+      edge, tip_labels, num_int_nodes, edge_lengths, Q, arma::diagmat(w), pi,
+      edge_sets, max_order, Mode::REWARD_MOMENTS, tip_data);
+  double likelihood = moments.at("");
+
+  for (auto it = moments.begin(); it != moments.end(); ++it) {
+    if (it->first != "") it->second /= likelihood;
+  }
+
+  return moments;
+}
