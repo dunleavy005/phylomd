@@ -1225,7 +1225,15 @@ Map<std::string, double> phylo_nsubs_moments(
     }
   }
 
-  return phylo_moments_derivatives(edge, tip_labels, num_int_nodes,
-                                   edge_lengths, Q, Q % L, pi, edge_sets,
-                                   max_order, Mode::NSUBS_MOMENTS, tip_data);
+  // Divide the computed moments by the likelihood.
+  Map<std::string, double> moments = phylo_moments_derivatives(
+      edge, tip_labels, num_int_nodes, edge_lengths, Q, Q % L, pi, edge_sets,
+      max_order, Mode::NSUBS_MOMENTS, tip_data);
+  double likelihood = moments.at("");
+
+  for (auto it = moments.begin(); it != moments.end(); ++it) {
+    if (it->first != "") it->second /= likelihood;
+  }
+
+  return moments;
 }
