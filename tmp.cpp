@@ -1297,3 +1297,55 @@ Map<std::string, double> phylo_reward_moments(
 
   return moments;
 }
+
+// [[Rcpp::export]]
+Map<std::string, double> phylo_Q_derivatives(
+    const Rcpp::List& tree, const Rcpp::List& subst_mod,
+    const std::string& param_name, int max_order,
+    const Vector<std::string>& tip_states) {
+  if (!tree.inherits("phylo"))
+    Rcpp::stop("'tree' must be an object of class 'phylo'.");
+  if (!tree.hasAttribute("order") ||
+      Rcpp::as<std::string>(tree.attr("order")) != "cladewise")
+    Rcpp::stop("The edge matrix must be in 'cladewise' order.");
+  if (!tree.containsElementNamed("edge.length"))
+    Rcpp::stop("'tree' must contain a vector of edge lengths.");
+  if (!subst_mod.inherits("substitution.model"))
+    Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
+  if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
+
+  arma::imat edge = tree["edge"];
+  const Vector<std::string>& tip_labels = tree["tip.label"];
+  int num_int_nodes = tree["Nnode"];
+  const arma::vec& edge_lengths = tree["edge.length"];
+  const Vector<std::string>& states = subst_mod["states"];
+  const arma::mat& Q = subst_mod["Q"];
+  const arma::vec& pi = subst_mod["pi"];
+  std::string d_param_name = "d_" + param_name;
+
+  if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
+    Rcpp::stop("'tree' must be a rooted tree.");
+  if (!subst_mod.containsElementNamed(d_param_name.c_str()))
+    Rcpp::stop("'param.name' is not a valid 'subst.mod' parameter name.");
+
+  const arma::mat& dQ = subst_mod[d_param_name];
+  VectorVector<int> edge_sets(1);
+  edge_sets[0].reserve(edge.n_rows);
+  for (std::size_t edge_label = 1; edge_label <= edge.n_rows; ++edge_label) {
+    edge_sets[0].push_back(edge_label);
+  }
+
+  arma::ivec tip_data(tip_states.size(), arma::fill::none);
+  for (std::size_t i = 0; i < tip_states.size(); ++i) {
+    auto find_it = std::find(states.begin(), states.end(), tip_states[i]);
+    if (find_it != states.end()) {
+      tip_data(i) = find_it - states.begin();
+    } else {
+      Rcpp::stop("'tip.states' must contain valid states.");
+    }
+  }
+
+  return phylo_moments_derivatives(edge, tip_labels, num_int_nodes,
+                                   edge_lengths, Q, dQ, pi, edge_sets,
+                                   max_order, Mode::Q_DERIVATIVES, tip_data);
+}
