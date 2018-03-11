@@ -410,6 +410,9 @@ arma::cube ctmc_reward_moments(double t, const Rcpp::List& subst_mod,
   if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
   if (!subst_mod.inherits("substitution.model"))
     Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
+  if (arma::any(arma::abs(arma::vectorise(L) - 0) >= arma::datum::eps &&
+                arma::abs(arma::vectorise(L) - 1) >= arma::datum::eps))
+    Rcpp::stop("'L' must be an indicator matrix.");
   if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
 
   const arma::mat& Q = subst_mod["Q"];

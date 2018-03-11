@@ -1196,6 +1196,9 @@ Map<std::string, double> phylo_nsubs_moments(
     Rcpp::stop("'tree' must contain a vector of edge lengths.");
   if (!subst_mod.inherits("substitution.model"))
     Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
+  if (arma::any(arma::abs(arma::vectorise(L) - 0) >= arma::datum::eps &&
+                arma::abs(arma::vectorise(L) - 1) >= arma::datum::eps))
+    Rcpp::stop("'L' must be an indicator matrix.");
   if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
 
   arma::imat edge = tree["edge"];
