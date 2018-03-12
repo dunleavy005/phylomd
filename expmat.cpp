@@ -432,12 +432,12 @@ arma::cube ctmc_Q_derivatives(double t, const Rcpp::List& subst_mod,
     Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
   if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
 
+  const arma::mat& Q = subst_mod["Q"];
   std::string d_param_name = "d_" + param_name;
 
   if (!subst_mod.containsElementNamed(d_param_name.c_str()))
     Rcpp::stop("'param.name' is not a valid 'subst.mod' parameter name.");
 
-  const arma::mat& Q = subst_mod["Q"];
   const arma::mat& dQ = subst_mod[d_param_name];
 
   return ctmc_moments_derivatives(t, Q, dQ, max_order, Mode::Q_DERIVATIVES);
