@@ -1330,6 +1330,8 @@ Map<std::string, double> phylo_Q_derivatives(
     Rcpp::stop("'tree' must be a rooted tree.");
   if (!subst_mod.containsElementNamed(d_param_name.c_str()))
     Rcpp::stop("'param.name' is not a valid 'subst.mod' parameter name.");
+  if (tip_states.size() != tip_labels.size())
+    Rcpp::stop("'tip.states' must be compatible with 'tree'.");
 
   const arma::mat& dQ = subst_mod[d_param_name];
   VectorVector<int> edge_sets(1);
