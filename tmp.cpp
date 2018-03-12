@@ -1380,6 +1380,8 @@ Map<std::string, double> phylo_t_derivatives(
 
   if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
+  if (tip_states.size() != tip_labels.size())
+    Rcpp::stop("'tip.states' must be compatible with 'tree'.");
 
   VectorVector<int> edge_sets(edge.n_rows);
   for (std::size_t edge_label = 1; edge_label <= edge.n_rows; ++edge_label) {
