@@ -18,7 +18,10 @@ length.}
 }
 \value{
 A three-dimensional array that stores the restricted moment 
-  matrices, where the third dimension indexes the different moment orders.
+  matrices, where the third dimension indexes the different moment orders. 
+  Specifically, if \code{outp} denotes the output array, then \code{outp[, ,
+  k]} represents the restricted moment matrix of order \code{k - 1} for all 
+  integers \code{k} between \code{1} and \code{max_order + 1}.
 }
 \description{
 Computes the CTMC restricted moment matrices of labeled substitution counts 

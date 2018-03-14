@@ -17,7 +17,10 @@
 #' @param max_order An integer specifying the maximum moment order of interest.
 #'   
 #' @return A three-dimensional array that stores the restricted moment 
-#'   matrices, where the third dimension indexes the different moment orders.
+#'   matrices, where the third dimension indexes the different moment orders. 
+#'   Specifically, if \code{outp} denotes the output array, then \code{outp[, ,
+#'   k]} represents the restricted moment matrix of order \code{k - 1} for all 
+#'   integers \code{k} between \code{1} and \code{max_order + 1}.
 #'   
 #' @references Van Loan C (1978) \dQuote{Computing Integrals Involving the 
 #'   Matrix Exponential}, \emph{IEEE Transactions on Automatic Control}, 
@@ -53,7 +56,10 @@ ctmc.nsubs.moments <- function(t, subst_mod, L, max_order) {
 #' @param max_order An integer specifying the maximum moment order of interest.
 #'   
 #' @return A three-dimensional array that stores the restricted moment 
-#'   matrices, where the third dimension indexes the different moment orders.
+#'   matrices, where the third dimension indexes the different moment orders. 
+#'   Specifically, if \code{outp} denotes the output array, then \code{outp[, ,
+#'   k]} represents the restricted moment matrix of order \code{k - 1} for all 
+#'   integers \code{k} between \code{1} and \code{max_order + 1}.
 #'   
 #' @references Van Loan C (1978) \dQuote{Computing Integrals Involving the 
 #'   Matrix Exponential}, \emph{IEEE Transactions on Automatic Control}, 
@@ -92,7 +98,10 @@ ctmc.reward.moments <- function(t, subst_mod, w, max_order) {
 #'   
 #' @return A three-dimensional array that stores the transition probability 
 #'   derivative matrices, where the third dimension indexes the different 
-#'   derivative orders.
+#'   derivative orders.  Specifically, if \code{outp} denotes the output array,
+#'   then \code{outp[, , k]} represents the transition probability derivative 
+#'   matrix of order \code{k - 1} for all integers \code{k} between \code{1} 
+#'   and \code{max_order + 1}.
 #'   
 #' @references Van Loan C (1978) \dQuote{Computing Integrals Involving the 
 #'   Matrix Exponential}, \emph{IEEE Transactions on Automatic Control}, 
@@ -114,8 +123,8 @@ ctmc.Q.derivatives <- function(t, subst_mod, param_name, max_order) {
 #' CTMC transition probability derivatives with respect to time interval length
 #' 
 #' Computes the CTMC transition probability derivative matrices with respect to
-#' time interval length for all orders less than or equal to the user-specified
-#' maximum order of interest.
+#' the time interval length for all orders less than or equal to the 
+#' user-specified maximum order of interest.
 #' 
 #' The zeroth-order transition probability derivative matrix is defined to be 
 #' the transition probability matrix.
@@ -128,7 +137,10 @@ ctmc.Q.derivatives <- function(t, subst_mod, param_name, max_order) {
 #'   
 #' @return A three-dimensional array that stores the transition probability 
 #'   derivative matrices, where the third dimension indexes the different 
-#'   derivative orders.
+#'   derivative orders.  Specifically, if \code{outp} denotes the output array,
+#'   then \code{outp[, , k]} represents the transition probability derivative 
+#'   matrix of order \code{k - 1} for all integers \code{k} between \code{1} 
+#'   and \code{max_order + 1}.
 #'   
 #' @references Kenney T and Gu H (2012) \dQuote{Hessian Calculation for 
 #'   Phylogenetic Likelihood based on the Pruning Algorithm and its 
