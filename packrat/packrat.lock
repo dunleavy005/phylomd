@@ -6,13 +6,13 @@ Repos: CRAN=http://cran.rstudio.com/,
 
 Package: Rcpp
 Source: CRAN
-Version: 0.12.8
-Hash: 436ad5c23fad4e22224c7ac2fc82b049
+Version: 0.12.12
+Hash: 8b3d5ebb9a9a4ab5c86b3a81b0cfb774
 
 Package: RcppArmadillo
 Source: CRAN
 Version: 0.6.700.3.0
-Hash: b827cd1187a78ddeb14c741a30c4c099
+Hash: f78a97b190d254fde63d1b827000e2c3
 Requires: Rcpp
 
 Package: ape

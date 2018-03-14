@@ -35,6 +35,6 @@
 #' @docType package
 #' @name phylomd
 #'   
-#' @useDynLib phylomd
+#' @useDynLib phylomd, .registration = TRUE
 #' @importFrom Rcpp evalCpp
 NULL

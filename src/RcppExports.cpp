@@ -9,7 +9,7 @@ using namespace Rcpp;
 
 // ctmc_nsubs_moments
 arma::cube ctmc_nsubs_moments(double t, const Rcpp::List& subst_mod, const arma::mat& L, int max_order);
-RcppExport SEXP phylomd_ctmc_nsubs_moments(SEXP tSEXP, SEXP subst_modSEXP, SEXP LSEXP, SEXP max_orderSEXP) {
+RcppExport SEXP _phylomd_ctmc_nsubs_moments(SEXP tSEXP, SEXP subst_modSEXP, SEXP LSEXP, SEXP max_orderSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -23,7 +23,7 @@ END_RCPP
 }
 // ctmc_reward_moments
 arma::cube ctmc_reward_moments(double t, const Rcpp::List& subst_mod, const arma::vec& w, int max_order);
-RcppExport SEXP phylomd_ctmc_reward_moments(SEXP tSEXP, SEXP subst_modSEXP, SEXP wSEXP, SEXP max_orderSEXP) {
+RcppExport SEXP _phylomd_ctmc_reward_moments(SEXP tSEXP, SEXP subst_modSEXP, SEXP wSEXP, SEXP max_orderSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -37,7 +37,7 @@ END_RCPP
 }
 // ctmc_Q_derivatives
 arma::cube ctmc_Q_derivatives(double t, const Rcpp::List& subst_mod, const std::string& param_name, int max_order);
-RcppExport SEXP phylomd_ctmc_Q_derivatives(SEXP tSEXP, SEXP subst_modSEXP, SEXP param_nameSEXP, SEXP max_orderSEXP) {
+RcppExport SEXP _phylomd_ctmc_Q_derivatives(SEXP tSEXP, SEXP subst_modSEXP, SEXP param_nameSEXP, SEXP max_orderSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -51,7 +51,7 @@ END_RCPP
 }
 // ctmc_t_derivatives
 arma::cube ctmc_t_derivatives(double t, const Rcpp::List& subst_mod, int max_order);
-RcppExport SEXP phylomd_ctmc_t_derivatives(SEXP tSEXP, SEXP subst_modSEXP, SEXP max_orderSEXP) {
+RcppExport SEXP _phylomd_ctmc_t_derivatives(SEXP tSEXP, SEXP subst_modSEXP, SEXP max_orderSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -64,7 +64,7 @@ END_RCPP
 }
 // phylo_nsubs_moments
 Map<std::string, double> phylo_nsubs_moments(const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::mat& L, VectorVector<int> edge_sets, int max_order, const std::vector<std::string>& tip_states);
-RcppExport SEXP phylomd_phylo_nsubs_moments(SEXP treeSEXP, SEXP subst_modSEXP, SEXP LSEXP, SEXP edge_setsSEXP, SEXP max_orderSEXP, SEXP tip_statesSEXP) {
+RcppExport SEXP _phylomd_phylo_nsubs_moments(SEXP treeSEXP, SEXP subst_modSEXP, SEXP LSEXP, SEXP edge_setsSEXP, SEXP max_orderSEXP, SEXP tip_statesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -80,7 +80,7 @@ END_RCPP
 }
 // phylo_reward_moments
 Map<std::string, double> phylo_reward_moments(const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::vec& w, VectorVector<int> edge_sets, int max_order, const std::vector<std::string>& tip_states);
-RcppExport SEXP phylomd_phylo_reward_moments(SEXP treeSEXP, SEXP subst_modSEXP, SEXP wSEXP, SEXP edge_setsSEXP, SEXP max_orderSEXP, SEXP tip_statesSEXP) {
+RcppExport SEXP _phylomd_phylo_reward_moments(SEXP treeSEXP, SEXP subst_modSEXP, SEXP wSEXP, SEXP edge_setsSEXP, SEXP max_orderSEXP, SEXP tip_statesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -96,7 +96,7 @@ END_RCPP
 }
 // phylo_Q_derivatives
 Map<std::string, double> phylo_Q_derivatives(const Rcpp::List& tree, const Rcpp::List& subst_mod, const std::string& param_name, int max_order, const std::vector<std::string>& tip_states);
-RcppExport SEXP phylomd_phylo_Q_derivatives(SEXP treeSEXP, SEXP subst_modSEXP, SEXP param_nameSEXP, SEXP max_orderSEXP, SEXP tip_statesSEXP) {
+RcppExport SEXP _phylomd_phylo_Q_derivatives(SEXP treeSEXP, SEXP subst_modSEXP, SEXP param_nameSEXP, SEXP max_orderSEXP, SEXP tip_statesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -111,7 +111,7 @@ END_RCPP
 }
 // phylo_t_derivatives
 Map<std::string, double> phylo_t_derivatives(const Rcpp::List& tree, const Rcpp::List& subst_mod, int max_order, const std::vector<std::string>& tip_states);
-RcppExport SEXP phylomd_phylo_t_derivatives(SEXP treeSEXP, SEXP subst_modSEXP, SEXP max_orderSEXP, SEXP tip_statesSEXP) {
+RcppExport SEXP _phylomd_phylo_t_derivatives(SEXP treeSEXP, SEXP subst_modSEXP, SEXP max_orderSEXP, SEXP tip_statesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -125,7 +125,7 @@ END_RCPP
 }
 // JC69
 Rcpp::List JC69(double mu, bool scale);
-RcppExport SEXP phylomd_JC69(SEXP muSEXP, SEXP scaleSEXP) {
+RcppExport SEXP _phylomd_JC69(SEXP muSEXP, SEXP scaleSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -137,7 +137,7 @@ END_RCPP
 }
 // K80
 Rcpp::List K80(double alpha, double beta, bool scale);
-RcppExport SEXP phylomd_K80(SEXP alphaSEXP, SEXP betaSEXP, SEXP scaleSEXP) {
+RcppExport SEXP _phylomd_K80(SEXP alphaSEXP, SEXP betaSEXP, SEXP scaleSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -150,7 +150,7 @@ END_RCPP
 }
 // F81
 Rcpp::List F81(double mu, const arma::vec& pi, bool scale);
-RcppExport SEXP phylomd_F81(SEXP muSEXP, SEXP piSEXP, SEXP scaleSEXP) {
+RcppExport SEXP _phylomd_F81(SEXP muSEXP, SEXP piSEXP, SEXP scaleSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -163,7 +163,7 @@ END_RCPP
 }
 // HKY85
 Rcpp::List HKY85(double alpha, double beta, const arma::vec& pi, bool scale);
-RcppExport SEXP phylomd_HKY85(SEXP alphaSEXP, SEXP betaSEXP, SEXP piSEXP, SEXP scaleSEXP) {
+RcppExport SEXP _phylomd_HKY85(SEXP alphaSEXP, SEXP betaSEXP, SEXP piSEXP, SEXP scaleSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -177,7 +177,7 @@ END_RCPP
 }
 // GTR
 Rcpp::List GTR(double rAC, double rAG, double rAT, double rCG, double rCT, double rGT, const arma::vec& pi, bool scale);
-RcppExport SEXP phylomd_GTR(SEXP rACSEXP, SEXP rAGSEXP, SEXP rATSEXP, SEXP rCGSEXP, SEXP rCTSEXP, SEXP rGTSEXP, SEXP piSEXP, SEXP scaleSEXP) {
+RcppExport SEXP _phylomd_GTR(SEXP rACSEXP, SEXP rAGSEXP, SEXP rATSEXP, SEXP rCGSEXP, SEXP rCTSEXP, SEXP rGTSEXP, SEXP piSEXP, SEXP scaleSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -192,4 +192,26 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(GTR(rAC, rAG, rAT, rCG, rCT, rGT, pi, scale));
     return rcpp_result_gen;
 END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"_phylomd_ctmc_nsubs_moments", (DL_FUNC) &_phylomd_ctmc_nsubs_moments, 4},
+    {"_phylomd_ctmc_reward_moments", (DL_FUNC) &_phylomd_ctmc_reward_moments, 4},
+    {"_phylomd_ctmc_Q_derivatives", (DL_FUNC) &_phylomd_ctmc_Q_derivatives, 4},
+    {"_phylomd_ctmc_t_derivatives", (DL_FUNC) &_phylomd_ctmc_t_derivatives, 3},
+    {"_phylomd_phylo_nsubs_moments", (DL_FUNC) &_phylomd_phylo_nsubs_moments, 6},
+    {"_phylomd_phylo_reward_moments", (DL_FUNC) &_phylomd_phylo_reward_moments, 6},
+    {"_phylomd_phylo_Q_derivatives", (DL_FUNC) &_phylomd_phylo_Q_derivatives, 5},
+    {"_phylomd_phylo_t_derivatives", (DL_FUNC) &_phylomd_phylo_t_derivatives, 4},
+    {"_phylomd_JC69", (DL_FUNC) &_phylomd_JC69, 2},
+    {"_phylomd_K80", (DL_FUNC) &_phylomd_K80, 3},
+    {"_phylomd_F81", (DL_FUNC) &_phylomd_F81, 3},
+    {"_phylomd_HKY85", (DL_FUNC) &_phylomd_HKY85, 4},
+    {"_phylomd_GTR", (DL_FUNC) &_phylomd_GTR, 8},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_phylomd(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

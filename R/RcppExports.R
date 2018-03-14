@@ -37,7 +37,7 @@
 #'   
 #' @export
 ctmc.nsubs.moments <- function(t, subst_mod, L, max_order) {
-    .Call('phylomd_ctmc_nsubs_moments', PACKAGE = 'phylomd', t, subst_mod, L, max_order)
+    .Call(`_phylomd_ctmc_nsubs_moments`, t, subst_mod, L, max_order)
 }
 
 #' CTMC restricted moments of total rewards
@@ -76,7 +76,7 @@ ctmc.nsubs.moments <- function(t, subst_mod, L, max_order) {
 #'   
 #' @export
 ctmc.reward.moments <- function(t, subst_mod, w, max_order) {
-    .Call('phylomd_ctmc_reward_moments', PACKAGE = 'phylomd', t, subst_mod, w, max_order)
+    .Call(`_phylomd_ctmc_reward_moments`, t, subst_mod, w, max_order)
 }
 
 #' CTMC transition probability derivatives with respect to rate matrix 
@@ -117,7 +117,7 @@ ctmc.reward.moments <- function(t, subst_mod, w, max_order) {
 #'   
 #' @export
 ctmc.Q.derivatives <- function(t, subst_mod, param_name, max_order) {
-    .Call('phylomd_ctmc_Q_derivatives', PACKAGE = 'phylomd', t, subst_mod, param_name, max_order)
+    .Call(`_phylomd_ctmc_Q_derivatives`, t, subst_mod, param_name, max_order)
 }
 
 #' CTMC transition probability derivatives with respect to time interval length
@@ -153,7 +153,7 @@ ctmc.Q.derivatives <- function(t, subst_mod, param_name, max_order) {
 #'   
 #' @export
 ctmc.t.derivatives <- function(t, subst_mod, max_order) {
-    .Call('phylomd_ctmc_t_derivatives', PACKAGE = 'phylomd', t, subst_mod, max_order)
+    .Call(`_phylomd_ctmc_t_derivatives`, t, subst_mod, max_order)
 }
 
 #' Phylogenetic stochastic mapping moments of labeled substitution counts
@@ -205,7 +205,7 @@ ctmc.t.derivatives <- function(t, subst_mod, max_order) {
 #'   
 #' @export
 phylo.nsubs.moments <- function(tree, subst_mod, L, edge_sets, max_order, tip_states) {
-    .Call('phylomd_phylo_nsubs_moments', PACKAGE = 'phylomd', tree, subst_mod, L, edge_sets, max_order, tip_states)
+    .Call(`_phylomd_phylo_nsubs_moments`, tree, subst_mod, L, edge_sets, max_order, tip_states)
 }
 
 #' Phylogenetic stochastic mapping moments of total rewards
@@ -258,7 +258,7 @@ phylo.nsubs.moments <- function(tree, subst_mod, L, edge_sets, max_order, tip_st
 #'   
 #' @export
 phylo.reward.moments <- function(tree, subst_mod, w, edge_sets, max_order, tip_states) {
-    .Call('phylomd_phylo_reward_moments', PACKAGE = 'phylomd', tree, subst_mod, w, edge_sets, max_order, tip_states)
+    .Call(`_phylomd_phylo_reward_moments`, tree, subst_mod, w, edge_sets, max_order, tip_states)
 }
 
 #' Phylogenetic likelihood derivatives with respect to rate matrix parameters
@@ -297,7 +297,7 @@ phylo.reward.moments <- function(tree, subst_mod, w, edge_sets, max_order, tip_s
 #'   
 #' @export
 phylo.Q.derivatives <- function(tree, subst_mod, param_name, max_order, tip_states) {
-    .Call('phylomd_phylo_Q_derivatives', PACKAGE = 'phylomd', tree, subst_mod, param_name, max_order, tip_states)
+    .Call(`_phylomd_phylo_Q_derivatives`, tree, subst_mod, param_name, max_order, tip_states)
 }
 
 #' Phylogenetic likelihood derivatives with respect to branch lengths
@@ -338,7 +338,7 @@ phylo.Q.derivatives <- function(tree, subst_mod, param_name, max_order, tip_stat
 #'   
 #' @export
 phylo.t.derivatives <- function(tree, subst_mod, max_order, tip_states) {
-    .Call('phylomd_phylo_t_derivatives', PACKAGE = 'phylomd', tree, subst_mod, max_order, tip_states)
+    .Call(`_phylomd_phylo_t_derivatives`, tree, subst_mod, max_order, tip_states)
 }
 
 #' The Jukes-Cantor (JC69) substitution model
@@ -369,7 +369,7 @@ phylo.t.derivatives <- function(tree, subst_mod, max_order, tip_states) {
 #'
 #' @export
 JC69 <- function(mu, scale = FALSE) {
-    .Call('phylomd_JC69', PACKAGE = 'phylomd', mu, scale)
+    .Call(`_phylomd_JC69`, mu, scale)
 }
 
 #' The Kimura 2-parameter (K80) substitution model
@@ -407,7 +407,7 @@ JC69 <- function(mu, scale = FALSE) {
 #'
 #' @export
 K80 <- function(alpha, beta, scale = FALSE) {
-    .Call('phylomd_K80', PACKAGE = 'phylomd', alpha, beta, scale)
+    .Call(`_phylomd_K80`, alpha, beta, scale)
 }
 
 #' The Felsenstein (F81) substitution model
@@ -440,7 +440,7 @@ K80 <- function(alpha, beta, scale = FALSE) {
 #'
 #' @export
 F81 <- function(mu, pi, scale = FALSE) {
-    .Call('phylomd_F81', PACKAGE = 'phylomd', mu, pi, scale)
+    .Call(`_phylomd_F81`, mu, pi, scale)
 }
 
 #' The Hasegawa-Kishino-Yano (HKY85) substitution model
@@ -478,7 +478,7 @@ F81 <- function(mu, pi, scale = FALSE) {
 #'
 #' @export
 HKY85 <- function(alpha, beta, pi, scale = FALSE) {
-    .Call('phylomd_HKY85', PACKAGE = 'phylomd', alpha, beta, pi, scale)
+    .Call(`_phylomd_HKY85`, alpha, beta, pi, scale)
 }
 
 #' The general time-reversible (GTR) substitution model
@@ -522,6 +522,6 @@ HKY85 <- function(alpha, beta, pi, scale = FALSE) {
 #'
 #' @export
 GTR <- function(rAC, rAG, rAT, rCG, rCT, rGT, pi, scale = FALSE) {
-    .Call('phylomd_GTR', PACKAGE = 'phylomd', rAC, rAG, rAT, rCG, rCT, rGT, pi, scale)
+    .Call(`_phylomd_GTR`, rAC, rAG, rAT, rCG, rCT, rGT, pi, scale)
 }
 
