@@ -1,0 +1,38 @@
+PackratFormat: 1.4
+PackratVersion: 0.4.8.1
+RVersion: 3.2.5
+Repos: CRAN=http://cran.rstudio.com/,
+    CRANextra=http://www.stats.ox.ac.uk/pub/RWin
+
+Package: Rcpp
+Source: CRAN
+Version: 0.12.8
+Hash: 436ad5c23fad4e22224c7ac2fc82b049
+
+Package: RcppArmadillo
+Source: CRAN
+Version: 0.6.700.3.0
+Hash: b827cd1187a78ddeb14c741a30c4c099
+Requires: Rcpp
+
+Package: ape
+Source: CRAN
+Version: 3.4
+Hash: 27269ec5e079292fd9c5f4bc60c56a36
+Requires: lattice, nlme
+
+Package: lattice
+Source: CRAN
+Version: 0.20-34
+Hash: 4390fc5602fd36017be70a27f7123ff3
+
+Package: nlme
+Source: CRAN
+Version: 3.1-131
+Hash: 7f5580f9c481d6921298f224c391b308
+Requires: lattice
+
+Package: packrat
+Source: CRAN
+Version: 0.4.8-1
+Hash: 6ad605ba7b4b476d84be6632393f5765

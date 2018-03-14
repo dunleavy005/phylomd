@@ -1,0 +1,26 @@
+Package: phylomd
+Title: Efficient Computations of Higher-Order Phylogenetic Moments and Derivatives
+Version: 0.0.0.9000
+Date: 2018-02-14
+Authors@R: as.person(c(
+    "Amrit Dhar <adhar@uw.edu> [aut, cre]",
+    "Vladimir N. Minin <vminin@uci.edu> [aut]"
+  ))
+Description: This package implements a post-order tree traversal meta-algorithm
+    that computes phylogenetic stochastic mapping moments and likelihood
+    derivatives of any order and scales linearly in the number of phylogeny
+    tips.  Utility functions related to simulation-based stochastic mapping and
+    higher-order continuous-time Markov chain (CTMC) moment and derivative
+    calculations are also provided.
+License: GPL-3
+Depends:
+    R (>= 3.2.5)
+Imports:
+    Rcpp (>= 0.12.8)
+Suggests:
+    ape (>= 3.4)
+LinkingTo: Rcpp, RcppArmadillo (>= 0.6.700.3.0)
+URL: https://github.com/dunleavy005/phylomd
+BugReports: https://github.com/dunleavy005/phylomd/issues
+LazyData: true
+RoxygenNote: 5.0.1

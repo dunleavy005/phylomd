@@ -1,156 +1,43 @@
-#include <RcppArmadillo.h>
+#include "substitution_models.h"
 
-// [[Rcpp::depends(RcppArmadillo)]]
-// [[Rcpp::plugins(cpp11)]]
+#include <cmath>
+#include <string>
 
-
-
-
-// [[Rcpp::export]]
-arma::mat choose_table(int n) {
-  // Initialize the combination table.
-  arma::mat C(n + 1, n + 1, arma::fill::zeros);
-  C.col(0).fill(1);
-
-  // Fill the combination table.
-  for (int i = 1; i < n + 1; ++i) {
-    for (int j = 1; j < i + 1; ++j) {
-      C(i, j) = C(i - 1, j - 1) + C(i - 1, j);
-    }
-  }
-
-  return C;
-}
+#include "phylomd_types.h"
 
 
-// [[Rcpp::export]]
-arma::mat stirling_num_table(int n) {
-  // Initialize the Stirling number table.
-  arma::mat S(n + 1, n + 1, arma::fill::zeros);
-  S(0, 0) = 1;
-
-  // Fill the Stirling number table.
-  for (int i = 1; i < n + 1; ++i) {
-    for (int j = 1; j < i + 1; ++j) {
-      S(i, j) = S(i - 1, j - 1) + j * S(i - 1, j);
-    }
-  }
-
-  return S;
-}
+//
+// This source file defines the CTMC substitution model functions.
+//
 
 
-// [[Rcpp::export]]
-arma::vec factorial_table(int n) {
-  // Initialize the factorial table.
-  arma::vec F(n + 1, arma::fill::zeros);
-  F(0) = 1;
-
-  // Fill the factorial table.
-  for (int i = 1; i < n + 1; ++i) {
-    F(i) = i * F(i - 1);
-  }
-
-  return F;
-}
-
-
-enum class Mode { NSUBS_MOMENTS, REWARD_MOMENTS, Q_DERIVATIVES, T_DERIVATIVES };
-
-
-arma::cube ctmc_moments_Q_derivatives_aux(double t, const arma::mat& Q,
-                                          const arma::mat& B, int max_order,
-                                          Mode mode) {
-  // Compute either CTMC moments or CTMC rate matrix derivatives associated with
-  // the branch length `t`.
-  arma::cube ctmc_mds(Q.n_rows, Q.n_cols, max_order + 1, arma::fill::zeros);
-
-  // Initialize the counting tables.
-  arma::vec factorial = factorial_table(max_order);
-  arma::mat stirling_num = (mode == Mode::NSUBS_MOMENTS)
-                               ? stirling_num_table(max_order)
-                               : arma::mat();
-
-  // Construct the auxiliary matrix `A`.
-  // `A` is an upper block bidiagonal matrix of the form: (Q  B  0 ... 0)
-  //                                                      (0  Q  B ... 0)
-  //                                                      (0  0  Q ... 0)
-  //                                                      (0  0  0 ... B)
-  //                                                      (0  0  0 ... Q),
-  // where the number of blocks is determined by `max_order`.
-  arma::mat A(arma::size(Q) * (max_order + 1), arma::fill::zeros);
-  A(0, 0, arma::size(Q)) = Q;
-
-  for (int i = 0; i < max_order; ++i) {
-    A(Q.n_rows * i, Q.n_cols * (i + 1), arma::size(Q)) = B;
-    A(Q.n_rows * (i + 1), Q.n_cols * (i + 1), arma::size(Q)) = Q;
-  }
-
-  // Compute the matrix exponential integrals.
-  // See (Van Loan, 1978) for an expression of the matrix exponential
-  // `exp(A * t)`.
-  arma::mat integrals_mat = arma::expmat(A * t).eval().head_rows(Q.n_rows);
-  arma::cube integrals(integrals_mat.begin(), Q.n_rows, Q.n_cols,
-                       max_order + 1);
-
-  // Store the zeroth CTMC moment or rate matrix derivative (i.e. the transition
-  // probability matrix).
-  ctmc_mds.slice(0) = std::move(integrals.slice(0));
-
-  for (int i = 1; i < max_order + 1; ++i) {
-    // Multiply the matrix exponential integrals by the corresponding
-    // factorials.
-    integrals.slice(i) *= factorial(i);
-
-    if (mode == Mode::NSUBS_MOMENTS) {
-      // Mode 1: NSUBS_MOMENTS
-      // Calculate the raw moments using the factorial moments and Stirling
-      // numbers.
-      for (int j = 1; j < i + 1; ++j) {
-        ctmc_mds.slice(i) += integrals.slice(j) * stirling_num(i, j);
-      }
-    } else {
-      // Mode 2: REWARD_MOMENTS
-      // Mode 3: Q_DERIVATIVES
-      ctmc_mds.slice(i) = std::move(integrals.slice(i));
-    }
-  }
-
-  return ctmc_mds;
-}
-
-arma::cube ctmc_t_derivatives_aux(double t, const arma::mat& Q, int max_order) {
-  // Compute CTMC branch length derivatives associated with the branch length
-  // `t`.
-  arma::cube ctmc_ds(Q.n_rows, Q.n_cols, max_order + 1, arma::fill::zeros);
-
-  // Store the zeroth CTMC branch length derivative (i.e. the transition
-  // probability matrix).
-  ctmc_ds.slice(0) = arma::expmat(Q * t);
-
-  for (int i = 1; i < max_order + 1; ++i) {
-    ctmc_ds.slice(i) = Q * ctmc_ds.slice(i - 1);
-  }
-
-  return ctmc_ds;
-}
-
-arma::cube ctmc_moments_derivatives(double t, const arma::mat& Q,
-                                    const arma::mat& B, int max_order,
-                                    Mode mode) {
-  if (mode != Mode::T_DERIVATIVES) {
-    // Mode 1: NSUBS_MOMENTS
-    // Mode 2: REWARD_MOMENTS
-    // Mode 3: Q_DERIVATIVES
-    return ctmc_moments_Q_derivatives_aux(t, Q, B, max_order, mode);
-  } else {
-    // Mode 4: T_DERIVATIVES
-    return ctmc_t_derivatives_aux(t, Q, max_order);
-  }
-}
-
-
-
+//' The Jukes-Cantor (JC69) substitution model
+//'
+//' Creates a Jukes-Cantor (JC69) substitution model object.
+//'
+//' @param mu A nonnegative numeric scalar representing the overall substitution
+//'   rate.
+//' @param scale A boolean indicating whether to scale the time dimension.  If
+//'   \code{TRUE}, then time is specified in terms of the expected number of
+//'   CTMC substitutions per site.
+//'
+//' @return A list (S3 object of class \code{"substitution.model"}) with the
+//'   following named entries:
+//'   \describe{
+//'     \item{\code{states}}{The vector of DNA states.}
+//'     \item{\code{Q}}{The JC69 rate matrix.}
+//'     \item{\code{pi}}{The JC69 stationary distribution.}
+//'     \item{\code{d_mu}}{The JC69 rate matrix derivative with respect to
+//'       \code{mu}.}
+//'   }
+//'
+//' @references Jukes TH and Cantor CR (1969) \dQuote{Evolution of Protein
+//'   Molecules}, \emph{Mammalian Protein Metabolism}, (3):21-132.
+//'
+//' @seealso \code{\link{K80}}, \code{\link{F81}}, \code{\link{HKY85}},
+//'   \code{\link{GTR}}
+//'
+//' @export
 // [[Rcpp::export]]
 Rcpp::List JC69(double mu, bool scale = false) {
   if (mu < 0.0) Rcpp::stop("The rate parameter cannot be less than 0.");
@@ -187,6 +74,40 @@ Rcpp::List JC69(double mu, bool scale = false) {
 }
 
 
+//' The Kimura 2-parameter (K80) substitution model
+//'
+//' Creates a Kimura 2-parameter (K80) substitution model object.
+//'
+//' @param alpha A nonnegative numeric scalar representing the substitution rate
+//'   of DNA transitions (\eqn{A <=> G} and \eqn{C <=> T}).
+//' @param beta A nonnegative numeric scalar representing the substitution rate
+//'   of DNA transversions (\eqn{A <=> C}, \eqn{A <=> T}, \eqn{C <=> G}, and
+//'   \eqn{G <=> T}).
+//' @param scale A boolean indicating whether to scale the time dimension.  If
+//'   \code{TRUE}, then time is specified in terms of the expected number of
+//'   CTMC substitutions per site.
+//'
+//' @return A list (S3 object of class \code{"substitution.model"}) with the
+//'   following named entries:
+//'   \describe{
+//'     \item{\code{states}}{The vector of DNA states.}
+//'     \item{\code{Q}}{The K80 rate matrix.}
+//'     \item{\code{pi}}{The K80 stationary distribution.}
+//'     \item{\code{d_alpha}}{The K80 rate matrix derivative with respect to
+//'       \code{alpha}.}
+//'     \item{\code{d_beta}}{The K80 rate matrix derivative with respect to
+//'       \code{beta}.}
+//'   }
+//'
+//' @references Kimura M (1980) \dQuote{A Simple Method for Estimating
+//'   Evolutionary Rates of Base Substitutions Through Comparative Studies of
+//'   Nucleotide Sequences}, \emph{Journal of Molecular Evolution},
+//'   16(2):111-120.
+//'
+//' @seealso \code{\link{JC69}}, \code{\link{F81}}, \code{\link{HKY85}},
+//'   \code{\link{GTR}}
+//'
+//' @export
 // [[Rcpp::export]]
 Rcpp::List K80(double alpha, double beta, bool scale = false) {
   for (auto r : {alpha, beta}) {
@@ -231,6 +152,35 @@ Rcpp::List K80(double alpha, double beta, bool scale = false) {
 }
 
 
+//' The Felsenstein (F81) substitution model
+//'
+//' Creates a Felsenstein (F81) substitution model object.
+//'
+//' @param mu A nonnegative numeric scalar representing the overall substitution
+//'   rate.
+//' @param pi A numeric vector defining the F81 stationary distribution.
+//' @param scale A boolean indicating whether to scale the time dimension.  If
+//'   \code{TRUE}, then time is specified in terms of the expected number of
+//'   CTMC substitutions per site.
+//'
+//' @return A list (S3 object of class \code{"substitution.model"}) with the
+//'   following named entries:
+//'   \describe{
+//'     \item{\code{states}}{The vector of DNA states.}
+//'     \item{\code{Q}}{The F81 rate matrix.}
+//'     \item{\code{pi}}{The F81 stationary distribution.}
+//'     \item{\code{d_mu}}{The F81 rate matrix derivative with respect to
+//'       \code{mu}.}
+//'   }
+//'
+//' @references Felsenstein J (1981) \dQuote{Evolutionary Trees from DNA
+//'   Sequences: A Maximum Likelihood Approach}, \emph{Journal of Molecular
+//'   Evolution}, 17(6):368-376.
+//'
+//' @seealso \code{\link{JC69}}, \code{\link{K80}}, \code{\link{HKY85}},
+//'   \code{\link{GTR}}
+//'
+//' @export
 // [[Rcpp::export]]
 Rcpp::List F81(double mu, const arma::vec& pi, bool scale = false) {
   if (mu < 0.0) Rcpp::stop("The rate parameter cannot be less than 0.");
@@ -271,6 +221,40 @@ Rcpp::List F81(double mu, const arma::vec& pi, bool scale = false) {
 }
 
 
+//' The Hasegawa-Kishino-Yano (HKY85) substitution model
+//'
+//' Creates a Hasegawa-Kishino-Yano (HKY85) substitution model object.
+//'
+//' @param alpha A nonnegative numeric scalar representing the substitution rate
+//'   of DNA transitions (\eqn{A <=> G} and \eqn{C <=> T}).
+//' @param beta A nonnegative numeric scalar representing the substitution rate
+//'   of DNA transversions (\eqn{A <=> C}, \eqn{A <=> T}, \eqn{C <=> G}, and
+//'   \eqn{G <=> T}).
+//' @param pi A numeric vector defining the HKY85 stationary distribution.
+//' @param scale A boolean indicating whether to scale the time dimension.  If
+//'   \code{TRUE}, then time is specified in terms of the expected number of
+//'   CTMC substitutions per site.
+//'
+//' @return A list (S3 object of class \code{"substitution.model"}) with the
+//'   following named entries:
+//'   \describe{
+//'     \item{\code{states}}{The vector of DNA states.}
+//'     \item{\code{Q}}{The HKY85 rate matrix.}
+//'     \item{\code{pi}}{The HKY85 stationary distribution.}
+//'     \item{\code{d_alpha}}{The HKY85 rate matrix derivative with respect to
+//'       \code{alpha}.}
+//'     \item{\code{d_beta}}{The HKY85 rate matrix derivative with respect to
+//'       \code{beta}.}
+//'   }
+//'
+//' @references Hasegawa M, Kishino H, and Yano TA (1985) \dQuote{Dating of the
+//'   Human-Ape Splitting by a Molecular Clock of Mitochondrial DNA}, \emph{
+//'   Journal of Molecular Evolution}, 22(2):160-174.
+//'
+//' @seealso \code{\link{JC69}}, \code{\link{K80}}, \code{\link{F81}},
+//'   \code{\link{GTR}}
+//'
+//' @export
 // [[Rcpp::export]]
 Rcpp::List HKY85(double alpha, double beta, const arma::vec& pi,
                  bool scale = false) {
@@ -323,6 +307,46 @@ Rcpp::List HKY85(double alpha, double beta, const arma::vec& pi,
 }
 
 
+//' The general time-reversible (GTR) substitution model
+//'
+//' Creates a general time-reversible (GTR) substitution model object.
+//'
+//' @param rAC,rAG,rAT,rCG,rCT,rGT Nonnegative numeric scalars representing the
+//'   \eqn{A <=> C}, \eqn{A <=> G}, \eqn{A <=> T}, \eqn{C <=> G}, \eqn{C <=> T},
+//'   and \eqn{G <=> T} substitution rates, respectively.
+//' @param pi A numeric vector defining the GTR stationary distribution.
+//' @param scale A boolean indicating whether to scale the time dimension.  If
+//'   \code{TRUE}, then time is specified in terms of the expected number of
+//'   CTMC substitutions per site.
+//'
+//' @return A list (S3 object of class \code{"substitution.model"}) with the
+//'   following named entries:
+//'   \describe{
+//'     \item{\code{states}}{The vector of DNA states.}
+//'     \item{\code{Q}}{The GTR rate matrix.}
+//'     \item{\code{pi}}{The GTR stationary distribution.}
+//'     \item{\code{d_rAC}}{The GTR rate matrix derivative with respect to
+//'       \code{rAC}.}
+//'     \item{\code{d_rAG}}{The GTR rate matrix derivative with respect to
+//'       \code{rAG}.}
+//'     \item{\code{d_rAT}}{The GTR rate matrix derivative with respect to
+//'       \code{rAT}.}
+//'     \item{\code{d_rCG}}{The GTR rate matrix derivative with respect to
+//'       \code{rCG}.}
+//'     \item{\code{d_rCT}}{The GTR rate matrix derivative with respect to
+//'       \code{rCT}.}
+//'     \item{\code{d_rGT}}{The GTR rate matrix derivative with respect to
+//'       \code{rGT}.}
+//'   }
+//'
+//' @references Tavare S (1986) \dQuote{Some Probabilistic and Statistical
+//'   Problems in the Analysis of DNA Sequences}, \emph{Lectures on Mathematics
+//'   in the Life Sciences}, 17(2):57-86.
+//'
+//' @seealso \code{\link{JC69}}, \code{\link{K80}}, \code{\link{F81}},
+//'   \code{\link{HKY85}}
+//'
+//' @export
 // [[Rcpp::export]]
 Rcpp::List GTR(double rAC, double rAG, double rAT, double rCG, double rCT,
                double rGT, const arma::vec& pi, bool scale = false) {
@@ -381,78 +405,4 @@ Rcpp::List GTR(double rAC, double rAG, double rAT, double rCG, double rCT,
   subst_mod.attr("class") = Vector<std::string>({"GTR", "substitution.model"});
 
   return subst_mod;
-}
-
-
-
-
-
-
-// [[Rcpp::export]]
-arma::cube ctmc_nsubs_moments(double t, const Rcpp::List& subst_mod,
-                              const arma::mat& L, int max_order) {
-  if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
-  if (!subst_mod.inherits("substitution.model"))
-    Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
-  if (arma::any(arma::abs(arma::vectorise(L) - 0) >= arma::datum::eps &&
-                arma::abs(arma::vectorise(L) - 1) >= arma::datum::eps))
-    Rcpp::stop("'L' must be an indicator matrix.");
-  if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
-
-  const arma::mat& Q = subst_mod["Q"];
-
-  if (arma::size(Q) != arma::size(L))
-    Rcpp::stop("The rate matrix and 'L' must have the same dimensions.");
-
-  return ctmc_moments_derivatives(t, Q, Q % L, max_order, Mode::NSUBS_MOMENTS);
-}
-
-// [[Rcpp::export]]
-arma::cube ctmc_reward_moments(double t, const Rcpp::List& subst_mod,
-                               const arma::vec& w, int max_order) {
-  if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
-  if (!subst_mod.inherits("substitution.model"))
-    Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
-  if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
-
-  const arma::mat& Q = subst_mod["Q"];
-
-  if (Q.n_rows != w.n_elem)
-    Rcpp::stop("The rate matrix and 'w' must have compatible dimensions.");
-
-  return ctmc_moments_derivatives(t, Q, arma::diagmat(w), max_order,
-                                  Mode::REWARD_MOMENTS);
-}
-
-// [[Rcpp::export]]
-arma::cube ctmc_Q_derivatives(double t, const Rcpp::List& subst_mod,
-                              const std::string& param_name, int max_order) {
-  if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
-  if (!subst_mod.inherits("substitution.model"))
-    Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
-  if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
-
-  const arma::mat& Q = subst_mod["Q"];
-  std::string d_param_name = "d_" + param_name;
-
-  if (!subst_mod.containsElementNamed(d_param_name.c_str()))
-    Rcpp::stop("'param.name' is not a valid 'subst.mod' parameter name.");
-
-  const arma::mat& dQ = subst_mod[d_param_name];
-
-  return ctmc_moments_derivatives(t, Q, dQ, max_order, Mode::Q_DERIVATIVES);
-}
-
-// [[Rcpp::export]]
-arma::cube ctmc_t_derivatives(double t, const Rcpp::List& subst_mod,
-                              int max_order) {
-  if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
-  if (!subst_mod.inherits("substitution.model"))
-    Rcpp::stop("'subst.mod' must be an object of class 'substitution.model'.");
-  if (max_order < 0) Rcpp::stop("'max.order' cannot be less than 0.");
-
-  const arma::mat& Q = subst_mod["Q"];
-
-  return ctmc_moments_derivatives(t, Q, arma::mat(), max_order,
-                                  Mode::T_DERIVATIVES);
 }
