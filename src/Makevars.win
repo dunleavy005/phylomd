@@ -3,4 +3,7 @@ CXX_STD = CXX11
 
 # Strip the debugging symbols from the compiled binary file.
 all: $(SHLIB)
-	if test -n "$(STRIP_STATIC_LIBS)"; then $(STRIP_STATIC_LIBS) $(SHLIB); fi
+	@if test -n "$(STRIP_STATIC_LIBS)"; then \
+		echo $(STRIP_STATIC_LIBS) $(SHLIB); \
+	  $(STRIP_STATIC_LIBS) $(SHLIB); \
+  fi
