@@ -1,2 +1,6 @@
 PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
 CXX_STD = CXX11
+
+# Strip the debugging symbols from the compiled binary file.
+all: $(SHLIB)
+	if test -n "$(STRIP_STATIC_LIBS)"; then $(STRIP_STATIC_LIBS) $(SHLIB); fi
