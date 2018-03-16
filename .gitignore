@@ -2,4 +2,5 @@ packrat/lib*/
 .Rproj.user
 packrat/src/
 src/*.o
+src/*.so
 src/*.dll
