@@ -30,10 +30,8 @@ void NodeList::init_recursion_info_aux(
   int choose_coef = 1;
   for (auto it = id_.sum_orders().begin(); it != id_.sum_orders().end(); ++it) {
     auto find_it = ids[left_elist_ind].sum_orders().find(it->first);
-    if (find_it != ids[left_elist_ind].sum_orders().end() &&
-        find_it->second != it->second) {
+    if (find_it != ids[left_elist_ind].sum_orders().end())
       choose_coef *= choose(it->second, find_it->second);
-    }
   }
 
   // Cache the current recursion information 3-tuple.
