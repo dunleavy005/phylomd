@@ -4,12 +4,9 @@
 #include <string>
 
 #include <RcppArmadillo.h>
-#include "EdgeList.h"
 #include "EdgeSet.h"
 #include "ListID.h"
 #include "MomentDerivativeID.h"
-#include "NodeList.h"
-#include "PartitionSet.h"
 #include "ctmc_moments_derivatives.h"
 #include "phylomd_types.h"
 
@@ -17,18 +14,6 @@
 //
 // This header file declares the phylogenetic moment/derivative functions.
 //
-
-
-void update_node_lists(int child_node_ind, const arma::uvec& child_edge_inds,
-                       const Vector<EdgeList>& elists,
-                       Vector<NodeList>& nlists);
-
-
-void update_edge_lists(
-    int edge_ind, int child_node_ind, const arma::cube& edge_mds,
-    Map<int, const PartitionSet&>::const_iterator edge_pset_it,
-    Map<int, const PartitionSet&>::const_iterator edge_psets_end_it,
-    const Vector<NodeList>& nlists, Vector<EdgeList>& elists);
 
 
 void find_connected_moment_derivative_ids_aux(
