@@ -11,8 +11,8 @@ Hash: 8b3d5ebb9a9a4ab5c86b3a81b0cfb774
 
 Package: RcppArmadillo
 Source: CRAN
-Version: 0.6.700.3.0
-Hash: f78a97b190d254fde63d1b827000e2c3
+Version: 0.7.800.2.0
+Hash: 2b72c6a4538eb03190aba93b876f1d44
 Requires: Rcpp
 
 Package: ape

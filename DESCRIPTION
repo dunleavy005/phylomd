@@ -19,7 +19,7 @@ Imports:
     Rcpp (>= 0.12.12)
 Suggests:
     ape (>= 3.4)
-LinkingTo: Rcpp, RcppArmadillo (>= 0.6.700.3.0)
+LinkingTo: Rcpp, RcppArmadillo (>= 0.7.800.2.0)
 URL: https://github.com/dunleavy005/phylomd
 BugReports: https://github.com/dunleavy005/phylomd/issues
 LazyData: true
