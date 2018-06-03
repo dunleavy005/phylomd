@@ -341,6 +341,101 @@ phylo.t.derivatives <- function(tree, subst_mod, max_order, tip_states) {
     .Call(`_phylomd_phylo_t_derivatives`, tree, subst_mod, max_order, tip_states)
 }
 
+#' CTMC path simulation
+#' 
+#' Simulates a CTMC sample path.
+#' 
+#' @param t A nonnegative numeric scalar representing the CTMC time interval 
+#'   length.
+#' @param subst_mod An S3 object of class \code{"substitution.model"}.
+#' @param init_state A string that specifies the initial state of the CTMC.
+#'   
+#' @return A data frame with two columns.  The \code{"time"} column holds the 
+#'   times at which each of the simulated CTMC states is entered and the 
+#'   \code{"state"} column stores the corresponding CTMC states.
+#'   
+#' @references Nielsen R (2002) \dQuote{Mapping Mutations on Phylogenies}, 
+#'   \emph{Systematic Biology}, 51(5):729-739.
+#'   
+#' @seealso \code{\link{asr.sim}}, \code{\link{smap.sim}}, 
+#'   \code{\link{tips.sim}}
+#'   
+#' @export
+ctmc.sim <- function(t, subst_mod, init_state) {
+    .Call(`_phylomd_ctmc_sim`, t, subst_mod, init_state)
+}
+
+#' Phylogenetic ancestral state reconstruction
+#' 
+#' Samples ancestral states at the internal nodes of a phylogeny conditional on
+#' observed tip states.
+#' 
+#' More information on S3 objects of class \code{"phylo"} is found at 
+#' \url{http://ape-package.ird.fr/misc/FormatTreeR_24Oct2012.pdf}.
+#' 
+#' @param tree An S3 object of class \code{"phylo"}.
+#' @param subst_mod An S3 object of class \code{"substitution.model"}.
+#' @param tip_states A character vector of observed tip states.
+#'   
+#' @return A character vector that holds the sampled ancestral states and 
+#'   observed tip states.
+#'   
+#' @references Nielsen R (2002) \dQuote{Mapping Mutations on Phylogenies}, 
+#'   \emph{Systematic Biology}, 51(5):729-739.
+#'   
+#' @seealso \code{\link{smap.sim}}, \code{\link{tips.sim}}, 
+#'   \code{\link{ctmc.sim}}
+#'   
+#' @export
+asr.sim <- function(tree, subst_mod, tip_states) {
+    .Call(`_phylomd_asr_sim`, tree, subst_mod, tip_states)
+}
+
+#' Phylogenetic stochastic mapping simulation
+#' 
+#' Samples a stochastic mapping on a phylogeny conditional on observed tip 
+#' states.
+#' 
+#' More information on S3 objects of class \code{"phylo"} is found at 
+#' \url{http://ape-package.ird.fr/misc/FormatTreeR_24Oct2012.pdf}.
+#' 
+#' @param tree An S3 object of class \code{"phylo"}.
+#' @param subst_mod An S3 object of class \code{"substitution.model"}.
+#' @param tip_states A character vector of observed tip states.
+#'   
+#' @return A list that stores the simulated CTMC trajectory at each edge.
+#'   
+#' @references Nielsen R (2002) \dQuote{Mapping Mutations on Phylogenies}, 
+#'   \emph{Systematic Biology}, 51(5):729-739.
+#'   
+#' @seealso \code{\link{asr.sim}}, \code{\link{tips.sim}}, 
+#'   \code{\link{ctmc.sim}}
+#'   
+#' @export
+smap.sim <- function(tree, subst_mod, tip_states) {
+    .Call(`_phylomd_smap_sim`, tree, subst_mod, tip_states)
+}
+
+#' Phylogenetic tip state simulation
+#' 
+#' Simulates the tip states of a phylogeny.
+#' 
+#' More information on S3 objects of class \code{"phylo"} is found at 
+#' \url{http://ape-package.ird.fr/misc/FormatTreeR_24Oct2012.pdf}.
+#' 
+#' @param tree An S3 object of class \code{"phylo"}.
+#' @param subst_mod An S3 object of class \code{"substitution.model"}.
+#'   
+#' @return A character vector of simulated tip states.
+#'   
+#' @seealso \code{\link{asr.sim}}, \code{\link{smap.sim}}, 
+#'   \code{\link{ctmc.sim}}
+#'   
+#' @export
+tips.sim <- function(tree, subst_mod) {
+    .Call(`_phylomd_tips_sim`, tree, subst_mod)
+}
+
 #' The Jukes-Cantor (JC69) substitution model
 #'
 #' Creates a Jukes-Cantor (JC69) substitution model object.

@@ -123,6 +123,57 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ctmc_sim
+Rcpp::DataFrame ctmc_sim(double t, const Rcpp::List& subst_mod, const std::string& init_state);
+RcppExport SEXP _phylomd_ctmc_sim(SEXP tSEXP, SEXP subst_modSEXP, SEXP init_stateSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type t(tSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type subst_mod(subst_modSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type init_state(init_stateSEXP);
+    rcpp_result_gen = Rcpp::wrap(ctmc_sim(t, subst_mod, init_state));
+    return rcpp_result_gen;
+END_RCPP
+}
+// asr_sim
+std::vector<std::string> asr_sim(const Rcpp::List& tree, const Rcpp::List& subst_mod, const std::vector<std::string>& tip_states);
+RcppExport SEXP _phylomd_asr_sim(SEXP treeSEXP, SEXP subst_modSEXP, SEXP tip_statesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type tree(treeSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type subst_mod(subst_modSEXP);
+    Rcpp::traits::input_parameter< const std::vector<std::string>& >::type tip_states(tip_statesSEXP);
+    rcpp_result_gen = Rcpp::wrap(asr_sim(tree, subst_mod, tip_states));
+    return rcpp_result_gen;
+END_RCPP
+}
+// smap_sim
+std::vector<Rcpp::DataFrame> smap_sim(const Rcpp::List& tree, const Rcpp::List& subst_mod, const std::vector<std::string>& tip_states);
+RcppExport SEXP _phylomd_smap_sim(SEXP treeSEXP, SEXP subst_modSEXP, SEXP tip_statesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type tree(treeSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type subst_mod(subst_modSEXP);
+    Rcpp::traits::input_parameter< const std::vector<std::string>& >::type tip_states(tip_statesSEXP);
+    rcpp_result_gen = Rcpp::wrap(smap_sim(tree, subst_mod, tip_states));
+    return rcpp_result_gen;
+END_RCPP
+}
+// tips_sim
+std::vector<std::string> tips_sim(const Rcpp::List& tree, const Rcpp::List& subst_mod);
+RcppExport SEXP _phylomd_tips_sim(SEXP treeSEXP, SEXP subst_modSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type tree(treeSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type subst_mod(subst_modSEXP);
+    rcpp_result_gen = Rcpp::wrap(tips_sim(tree, subst_mod));
+    return rcpp_result_gen;
+END_RCPP
+}
 // JC69
 Rcpp::List JC69(double mu, bool scale);
 RcppExport SEXP _phylomd_JC69(SEXP muSEXP, SEXP scaleSEXP) {
@@ -203,6 +254,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_phylomd_phylo_reward_moments", (DL_FUNC) &_phylomd_phylo_reward_moments, 6},
     {"_phylomd_phylo_Q_derivatives", (DL_FUNC) &_phylomd_phylo_Q_derivatives, 5},
     {"_phylomd_phylo_t_derivatives", (DL_FUNC) &_phylomd_phylo_t_derivatives, 4},
+    {"_phylomd_ctmc_sim", (DL_FUNC) &_phylomd_ctmc_sim, 3},
+    {"_phylomd_asr_sim", (DL_FUNC) &_phylomd_asr_sim, 3},
+    {"_phylomd_smap_sim", (DL_FUNC) &_phylomd_smap_sim, 3},
+    {"_phylomd_tips_sim", (DL_FUNC) &_phylomd_tips_sim, 2},
     {"_phylomd_JC69", (DL_FUNC) &_phylomd_JC69, 2},
     {"_phylomd_K80", (DL_FUNC) &_phylomd_K80, 3},
     {"_phylomd_F81", (DL_FUNC) &_phylomd_F81, 3},
