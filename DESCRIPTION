@@ -1,7 +1,7 @@
 Package: phylomd
 Title: Efficient Computations of Higher-Order Phylogenetic Moments and Derivatives
-Version: 0.0.0.9000
-Date: 2018-02-14
+Version: 0.1.0
+Date: 2018-06-03
 Authors@R: as.person(c(
     "Amrit Dhar <adhar@uw.edu> [aut, cre]",
     "Vladimir N. Minin <vminin@uci.edu> [aut]"
