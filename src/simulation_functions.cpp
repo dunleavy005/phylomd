@@ -111,7 +111,9 @@ std::pair<Vector<std::string>, Vector<int>> asr_sim_aux(
       asr_state_inds[child_node_ind] = tip_data[child_node_ind];
     }
 
-    asr_states[child_node_ind] = states[asr_state_inds[child_node_ind]];
+    asr_states[child_node_ind] = (asr_state_inds[child_node_ind] != -1)
+                                     ? states[asr_state_inds[child_node_ind]]
+                                     : "N";
   }
 
   return {asr_states, asr_state_inds};
@@ -173,6 +175,9 @@ Rcpp::DataFrame ctmc_sim(double t, const Rcpp::List& subst_mod,
 //' More information on S3 objects of class \code{"phylo"} is found at 
 //' \url{http://ape-package.ird.fr/misc/FormatTreeR_24Oct2012.pdf}.
 //' 
+//' If an observed tip state is invalid, then it is treated as an ambiguous 
+//' character state.
+//' 
 //' @param tree An S3 object of class \code{"phylo"}.
 //' @param subst_mod An S3 object of class \code{"substitution.model"}.
 //' @param tip_states A character vector of observed tip states.
@@ -222,11 +227,7 @@ std::vector<std::string> asr_sim(const Rcpp::List& tree,
   arma::ivec tip_data(tip_states.size(), arma::fill::none);
   for (std::size_t i = 0; i < tip_states.size(); ++i) {
     auto find_it = std::find(states.begin(), states.end(), tip_states[i]);
-    if (find_it != states.end()) {
-      tip_data(i) = find_it - states.begin();
-    } else {
-      Rcpp::stop("'tip_states' must contain valid states.");
-    }
+    tip_data(i) = (find_it != states.end()) ? find_it - states.begin() : -1;
   }
 
   return asr_sim_aux(edge, tip_labels, num_int_nodes, edge_lengths, states, Q,
@@ -242,6 +243,9 @@ std::vector<std::string> asr_sim(const Rcpp::List& tree,
 //' 
 //' More information on S3 objects of class \code{"phylo"} is found at 
 //' \url{http://ape-package.ird.fr/misc/FormatTreeR_24Oct2012.pdf}.
+//' 
+//' If an observed tip state is invalid, then it is treated as an ambiguous 
+//' character state.
 //' 
 //' @param tree An S3 object of class \code{"phylo"}.
 //' @param subst_mod An S3 object of class \code{"substitution.model"}.
@@ -292,11 +296,7 @@ std::vector<Rcpp::DataFrame> smap_sim(
   arma::ivec tip_data(tip_states.size(), arma::fill::none);
   for (std::size_t i = 0; i < tip_states.size(); ++i) {
     auto find_it = std::find(states.begin(), states.end(), tip_states[i]);
-    if (find_it != states.end()) {
-      tip_data(i) = find_it - states.begin();
-    } else {
-      Rcpp::stop("'tip_states' must contain valid states.");
-    }
+    tip_data(i) = (find_it != states.end()) ? find_it - states.begin() : -1;
   }
 
   // Sample the ancestral states.
@@ -319,7 +319,8 @@ std::vector<Rcpp::DataFrame> smap_sim(
           ctmc_sim_aux(edge_lengths(edge_ind), states, Q, state_inds,
                        asr_state_inds[parent_node_ind]);
     } while (Rcpp::as<Vector<std::string>>(smap[edge_ind]["state"]).back() !=
-             asr_states[child_node_ind]);
+                 asr_states[child_node_ind] &&
+             asr_states[child_node_ind] != "N");
   }
 
   return smap;

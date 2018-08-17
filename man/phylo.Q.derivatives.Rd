@@ -36,6 +36,9 @@ More information on S3 objects of class \code{"phylo"} is found at
 
 The zeroth-order likelihood derivative is defined to be the phylogenetic 
 likelihood.
+
+If an observed tip state is invalid, then it is treated as an ambiguous 
+character state.
 }
 \references{
 Kenney T and Gu H (2012) \dQuote{Hessian Calculation for 

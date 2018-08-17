@@ -168,10 +168,8 @@ ctmc.t.derivatives <- function(t, subst_mod, max_order) {
 #' The zeroth-order stochastic mapping moment is defined to be the phylogenetic
 #' likelihood.
 #' 
-#' If the number of observed tip states (\code{length(tip_states)}) is not 
-#' equal to the number of tips on the phylogeny 
-#' (\code{length(tree$tip.label)}), then the stochastic mapping moments are 
-#' computed using ambiguous character states.
+#' If an observed tip state is invalid, then it is treated as an ambiguous 
+#' character state.
 #' 
 #' @param tree An S3 object of class \code{"phylo"}.
 #' @param subst_mod An S3 object of class \code{"substitution.model"}.
@@ -220,10 +218,8 @@ phylo.nsubs.moments <- function(tree, subst_mod, L, edge_sets, max_order, tip_st
 #' The zeroth-order stochastic mapping moment is defined to be the phylogenetic
 #' likelihood.
 #' 
-#' If the number of observed tip states (\code{length(tip_states)}) is not 
-#' equal to the number of tips on the phylogeny 
-#' (\code{length(tree$tip.label)}), then the stochastic mapping moments are 
-#' computed using ambiguous character states.
+#' If an observed tip state is invalid, then it is treated as an ambiguous 
+#' character state.
 #' 
 #' @param tree An S3 object of class \code{"phylo"}.
 #' @param subst_mod An S3 object of class \code{"substitution.model"}.
@@ -273,6 +269,9 @@ phylo.reward.moments <- function(tree, subst_mod, w, edge_sets, max_order, tip_s
 #' The zeroth-order likelihood derivative is defined to be the phylogenetic 
 #' likelihood.
 #' 
+#' If an observed tip state is invalid, then it is treated as an ambiguous 
+#' character state.
+#' 
 #' @param tree An S3 object of class \code{"phylo"}.
 #' @param subst_mod An S3 object of class \code{"substitution.model"}.
 #' @param param_name The rate matrix parameter name of interest.
@@ -311,6 +310,9 @@ phylo.Q.derivatives <- function(tree, subst_mod, param_name, max_order, tip_stat
 #' 
 #' The zeroth-order likelihood derivative is defined to be the phylogenetic 
 #' likelihood.
+#' 
+#' If an observed tip state is invalid, then it is treated as an ambiguous 
+#' character state.
 #' 
 #' @param tree An S3 object of class \code{"phylo"}.
 #' @param subst_mod An S3 object of class \code{"substitution.model"}.
@@ -373,6 +375,9 @@ ctmc.sim <- function(t, subst_mod, init_state) {
 #' More information on S3 objects of class \code{"phylo"} is found at 
 #' \url{http://ape-package.ird.fr/misc/FormatTreeR_24Oct2012.pdf}.
 #' 
+#' If an observed tip state is invalid, then it is treated as an ambiguous 
+#' character state.
+#' 
 #' @param tree An S3 object of class \code{"phylo"}.
 #' @param subst_mod An S3 object of class \code{"substitution.model"}.
 #' @param tip_states A character vector of observed tip states.
@@ -398,6 +403,9 @@ asr.sim <- function(tree, subst_mod, tip_states) {
 #' 
 #' More information on S3 objects of class \code{"phylo"} is found at 
 #' \url{http://ape-package.ird.fr/misc/FormatTreeR_24Oct2012.pdf}.
+#' 
+#' If an observed tip state is invalid, then it is treated as an ambiguous 
+#' character state.
 #' 
 #' @param tree An S3 object of class \code{"phylo"}.
 #' @param subst_mod An S3 object of class \code{"substitution.model"}.

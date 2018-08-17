@@ -42,10 +42,8 @@ More information on S3 objects of class \code{"phylo"} is found at
 The zeroth-order stochastic mapping moment is defined to be the phylogenetic
 likelihood.
 
-If the number of observed tip states (\code{length(tip_states)}) is not 
-equal to the number of tips on the phylogeny 
-(\code{length(tree$tip.label)}), then the stochastic mapping moments are 
-computed using ambiguous character states.
+If an observed tip state is invalid, then it is treated as an ambiguous 
+character state.
 }
 \references{
 Minin VN and Suchard MA (2008) \dQuote{Fast, Accurate and 

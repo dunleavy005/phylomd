@@ -23,6 +23,9 @@ states.
 \details{
 More information on S3 objects of class \code{"phylo"} is found at 
 \url{http://ape-package.ird.fr/misc/FormatTreeR_24Oct2012.pdf}.
+
+If an observed tip state is invalid, then it is treated as an ambiguous 
+character state.
 }
 \references{
 Nielsen R (2002) \dQuote{Mapping Mutations on Phylogenies}, 

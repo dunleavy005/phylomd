@@ -100,8 +100,8 @@ void postorder_traverse(const arma::imat& edge, const arma::vec& edge_lengths,
       // (Note: the "empty" node list is always the first element in the node
       // list vector.)
 
-      // Do we have observed data at the terminal nodes?
-      if ((int)tip_data.n_elem == num_term_nodes) {
+      // Do we have observed data at this terminal node?
+      if (tip_data(child_node_ind) != -1) {
         nlists[0].elems()(tip_data(child_node_ind), child_node_ind) = 1;
       } else {
         nlists[0].elems().col(child_node_ind).fill(1);

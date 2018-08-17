@@ -196,10 +196,8 @@ Map<std::string, double> phylo_moments_derivatives(
 //' The zeroth-order stochastic mapping moment is defined to be the phylogenetic
 //' likelihood.
 //' 
-//' If the number of observed tip states (\code{length(tip_states)}) is not 
-//' equal to the number of tips on the phylogeny 
-//' (\code{length(tree$tip.label)}), then the stochastic mapping moments are 
-//' computed using ambiguous character states.
+//' If an observed tip state is invalid, then it is treated as an ambiguous 
+//' character state.
 //' 
 //' @param tree An S3 object of class \code{"phylo"}.
 //' @param subst_mod An S3 object of class \code{"substitution.model"}.
@@ -269,15 +267,13 @@ Map<std::string, double> phylo_nsubs_moments(
         Rcpp::stop("'edge_sets' must contain valid edges.");
     }
   }
+  if (tip_states.size() != tip_labels.size())
+    Rcpp::stop("'tip_states' must be compatible with 'tree'.");
 
   arma::ivec tip_data(tip_states.size(), arma::fill::none);
   for (std::size_t i = 0; i < tip_states.size(); ++i) {
     auto find_it = std::find(states.begin(), states.end(), tip_states[i]);
-    if (find_it != states.end()) {
-      tip_data(i) = find_it - states.begin();
-    } else {
-      Rcpp::stop("'tip_states' must contain valid states.");
-    }
+    tip_data(i) = (find_it != states.end()) ? find_it - states.begin() : -1;
   }
 
   // Divide the computed moments by the likelihood.
@@ -306,10 +302,8 @@ Map<std::string, double> phylo_nsubs_moments(
 //' The zeroth-order stochastic mapping moment is defined to be the phylogenetic
 //' likelihood.
 //' 
-//' If the number of observed tip states (\code{length(tip_states)}) is not 
-//' equal to the number of tips on the phylogeny 
-//' (\code{length(tree$tip.label)}), then the stochastic mapping moments are 
-//' computed using ambiguous character states.
+//' If an observed tip state is invalid, then it is treated as an ambiguous 
+//' character state.
 //' 
 //' @param tree An S3 object of class \code{"phylo"}.
 //' @param subst_mod An S3 object of class \code{"substitution.model"}.
@@ -377,15 +371,13 @@ Map<std::string, double> phylo_reward_moments(
         Rcpp::stop("'edge_sets' must contain valid edges.");
     }
   }
+  if (tip_states.size() != tip_labels.size())
+    Rcpp::stop("'tip_states' must be compatible with 'tree'.");
 
   arma::ivec tip_data(tip_states.size(), arma::fill::none);
   for (std::size_t i = 0; i < tip_states.size(); ++i) {
     auto find_it = std::find(states.begin(), states.end(), tip_states[i]);
-    if (find_it != states.end()) {
-      tip_data(i) = find_it - states.begin();
-    } else {
-      Rcpp::stop("'tip_states' must contain valid states.");
-    }
+    tip_data(i) = (find_it != states.end()) ? find_it - states.begin() : -1;
   }
 
   // Divide the computed moments by the likelihood.
@@ -413,6 +405,9 @@ Map<std::string, double> phylo_reward_moments(
 //' 
 //' The zeroth-order likelihood derivative is defined to be the phylogenetic 
 //' likelihood.
+//' 
+//' If an observed tip state is invalid, then it is treated as an ambiguous 
+//' character state.
 //' 
 //' @param tree An S3 object of class \code{"phylo"}.
 //' @param subst_mod An S3 object of class \code{"substitution.model"}.
@@ -479,11 +474,7 @@ Map<std::string, double> phylo_Q_derivatives(
   arma::ivec tip_data(tip_states.size(), arma::fill::none);
   for (std::size_t i = 0; i < tip_states.size(); ++i) {
     auto find_it = std::find(states.begin(), states.end(), tip_states[i]);
-    if (find_it != states.end()) {
-      tip_data(i) = find_it - states.begin();
-    } else {
-      Rcpp::stop("'tip_states' must contain valid states.");
-    }
+    tip_data(i) = (find_it != states.end()) ? find_it - states.begin() : -1;
   }
 
   return phylo_moments_derivatives(edge, tip_labels, num_int_nodes,
@@ -503,6 +494,9 @@ Map<std::string, double> phylo_Q_derivatives(
 //' 
 //' The zeroth-order likelihood derivative is defined to be the phylogenetic 
 //' likelihood.
+//' 
+//' If an observed tip state is invalid, then it is treated as an ambiguous 
+//' character state.
 //' 
 //' @param tree An S3 object of class \code{"phylo"}.
 //' @param subst_mod An S3 object of class \code{"substitution.model"}.
@@ -566,11 +560,7 @@ Map<std::string, double> phylo_t_derivatives(
   arma::ivec tip_data(tip_states.size(), arma::fill::none);
   for (std::size_t i = 0; i < tip_states.size(); ++i) {
     auto find_it = std::find(states.begin(), states.end(), tip_states[i]);
-    if (find_it != states.end()) {
-      tip_data(i) = find_it - states.begin();
-    } else {
-      Rcpp::stop("'tip_states' must contain valid states.");
-    }
+    tip_data(i) = (find_it != states.end()) ? find_it - states.begin() : -1;
   }
 
   return phylo_moments_derivatives(edge, tip_labels, num_int_nodes,
