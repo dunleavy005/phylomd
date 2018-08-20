@@ -108,7 +108,7 @@ std::pair<Vector<std::string>, Vector<int>> asr_sim_aux(
           Rcpp::RcppArmadillo::sample(state_inds, 1, true, state_probs)[0];
     } else {
       // Otherwise, fix the "ancestral state" to be the observed tip state.
-      asr_state_inds[child_node_ind] = tip_data[child_node_ind];
+      asr_state_inds[child_node_ind] = tip_data(child_node_ind);
     }
 
     asr_states[child_node_ind] = (asr_state_inds[child_node_ind] != -1)
