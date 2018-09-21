@@ -7,6 +7,18 @@
 
 using namespace Rcpp;
 
+// ctmc_tpm
+arma::mat ctmc_tpm(double t, const Rcpp::List& subst_mod);
+RcppExport SEXP _phylomd_ctmc_tpm(SEXP tSEXP, SEXP subst_modSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type t(tSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type subst_mod(subst_modSEXP);
+    rcpp_result_gen = Rcpp::wrap(ctmc_tpm(t, subst_mod));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ctmc_nsubs_moments
 arma::cube ctmc_nsubs_moments(double t, const Rcpp::List& subst_mod, const arma::mat& L, int max_order);
 RcppExport SEXP _phylomd_ctmc_nsubs_moments(SEXP tSEXP, SEXP subst_modSEXP, SEXP LSEXP, SEXP max_orderSEXP) {
@@ -59,6 +71,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Rcpp::List& >::type subst_mod(subst_modSEXP);
     Rcpp::traits::input_parameter< int >::type max_order(max_orderSEXP);
     rcpp_result_gen = Rcpp::wrap(ctmc_t_derivatives(t, subst_mod, max_order));
+    return rcpp_result_gen;
+END_RCPP
+}
+// phylo_likelihood
+double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod, const std::vector<std::string>& tip_states);
+RcppExport SEXP _phylomd_phylo_likelihood(SEXP treeSEXP, SEXP subst_modSEXP, SEXP tip_statesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type tree(treeSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type subst_mod(subst_modSEXP);
+    Rcpp::traits::input_parameter< const std::vector<std::string>& >::type tip_states(tip_statesSEXP);
+    rcpp_result_gen = Rcpp::wrap(phylo_likelihood(tree, subst_mod, tip_states));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -246,10 +271,12 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_phylomd_ctmc_tpm", (DL_FUNC) &_phylomd_ctmc_tpm, 2},
     {"_phylomd_ctmc_nsubs_moments", (DL_FUNC) &_phylomd_ctmc_nsubs_moments, 4},
     {"_phylomd_ctmc_reward_moments", (DL_FUNC) &_phylomd_ctmc_reward_moments, 4},
     {"_phylomd_ctmc_Q_derivatives", (DL_FUNC) &_phylomd_ctmc_Q_derivatives, 4},
     {"_phylomd_ctmc_t_derivatives", (DL_FUNC) &_phylomd_ctmc_t_derivatives, 3},
+    {"_phylomd_phylo_likelihood", (DL_FUNC) &_phylomd_phylo_likelihood, 3},
     {"_phylomd_phylo_nsubs_moments", (DL_FUNC) &_phylomd_phylo_nsubs_moments, 6},
     {"_phylomd_phylo_reward_moments", (DL_FUNC) &_phylomd_phylo_reward_moments, 6},
     {"_phylomd_phylo_Q_derivatives", (DL_FUNC) &_phylomd_phylo_Q_derivatives, 5},

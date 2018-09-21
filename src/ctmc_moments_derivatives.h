@@ -27,6 +27,9 @@ arma::cube ctmc_moments_derivatives(double t, const arma::mat& Q,
                                     Mode mode);
 
 
+arma::mat ctmc_tpm(double t, const Rcpp::List& subst_mod);
+
+
 arma::cube ctmc_nsubs_moments(double t, const Rcpp::List& subst_mod,
                               const arma::mat& L, int max_order);
 

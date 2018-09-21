@@ -37,6 +37,10 @@ Map<std::string, double> phylo_moments_derivatives(
     const arma::ivec& tip_data);
 
 
+double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,
+                        const Vector<std::string>& tip_states);
+
+
 Map<std::string, double> phylo_nsubs_moments(
     const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::mat& L,
     VectorVector<int> edge_sets, int max_order,

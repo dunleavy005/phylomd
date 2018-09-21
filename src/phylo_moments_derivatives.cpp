@@ -184,6 +184,70 @@ Map<std::string, double> phylo_moments_derivatives(
 }
 
 
+//' Phylogenetic likelihood
+//' 
+//' Computes the phylogenetic likelihood.
+//' 
+//' More information on S3 objects of class \code{"phylo"} is found at 
+//' \url{http://ape-package.ird.fr/misc/FormatTreeR_24Oct2012.pdf}.
+//' 
+//' If an observed tip state is invalid, then it is treated as an ambiguous 
+//' character state.
+//' 
+//' @param tree An S3 object of class \code{"phylo"}.
+//' @param subst_mod An S3 object of class \code{"substitution.model"}.
+//' @param tip_states A character vector of observed tip states.
+//'   
+//' @return A numeric vector of length one that holds the phylogenetic 
+//'   likelihood.
+//'   
+//' @references Felsenstein J (1981) \dQuote{Evolutionary Trees from DNA 
+//'   Sequences: A Maximum Likelihood Approach}, \emph{Journal of Molecular 
+//'   Evolution}, 17(6):368-376.
+//'   
+//' @seealso \code{\link{ctmc.tpm}}
+//'   
+//' @export
+// [[Rcpp::export(name = "phylo.likelihood")]]
+double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,
+                        const std::vector<std::string>& tip_states) {
+  if (!tree.inherits("phylo"))
+    Rcpp::stop("'tree' must be an object of class 'phylo'.");
+  if (!tree.hasAttribute("order") ||
+      Rcpp::as<std::string>(tree.attr("order")) != "cladewise")
+    Rcpp::stop("The edge matrix must be in 'cladewise' order.");
+  if (!tree.containsElementNamed("edge.length"))
+    Rcpp::stop("'tree' must contain a vector of edge lengths.");
+  if (!subst_mod.inherits("substitution.model"))
+    Rcpp::stop("'subst_mod' must be an object of class 'substitution.model'.");
+
+  arma::imat edge = tree["edge"];
+  const Vector<std::string>& tip_labels = tree["tip.label"];
+  int num_int_nodes = tree["Nnode"];
+  const arma::vec& edge_lengths = tree["edge.length"];
+  const Vector<std::string>& states = subst_mod["states"];
+  const arma::mat& Q = subst_mod["Q"];
+  const arma::vec& pi = subst_mod["pi"];
+  VectorVector<int> edge_sets;
+
+  if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
+    Rcpp::stop("'tree' must be a rooted tree.");
+  if (tip_states.size() != tip_labels.size())
+    Rcpp::stop("'tip_states' must be compatible with 'tree'.");
+
+  arma::ivec tip_data(tip_states.size(), arma::fill::none);
+  for (std::size_t i = 0; i < tip_states.size(); ++i) {
+    auto find_it = std::find(states.begin(), states.end(), tip_states[i]);
+    tip_data(i) = (find_it != states.end()) ? find_it - states.begin() : -1;
+  }
+
+  return phylo_moments_derivatives(edge, tip_labels, num_int_nodes,
+                                   edge_lengths, Q, arma::mat(), pi, edge_sets,
+                                   0, Mode::T_DERIVATIVES, tip_data)
+      .at("");
+}
+
+
 //' Phylogenetic stochastic mapping moments of labeled substitution counts
 //' 
 //' Computes the phylogenetic stochastic mapping moments of labeled substitution

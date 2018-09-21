@@ -104,6 +104,32 @@ arma::cube ctmc_moments_derivatives(double t, const arma::mat& Q,
 }
 
 
+//' CTMC transition probability matrix
+//' 
+//' Computes the CTMC transition probability matrix.
+//' 
+//' @param t A nonnegative numeric scalar representing the CTMC time interval 
+//'   length.
+//' @param subst_mod An S3 object of class \code{"substitution.model"}.
+//'   
+//' @return A matrix that stores the CTMC transition probabilities.
+//'   
+//' @seealso \code{\link{phylo.likelihood}}
+//'   
+//' @export
+// [[Rcpp::export(name = "ctmc.tpm")]]
+arma::mat ctmc_tpm(double t, const Rcpp::List& subst_mod) {
+  if (t < 0.0) Rcpp::stop("'t' cannot be less than 0.");
+  if (!subst_mod.inherits("substitution.model"))
+    Rcpp::stop("'subst_mod' must be an object of class 'substitution.model'.");
+
+  const arma::mat& Q = subst_mod["Q"];
+
+  return ctmc_moments_derivatives(t, Q, arma::mat(), 0, Mode::T_DERIVATIVES)
+      .slice(0);
+}
+
+
 //' CTMC restricted moments of labeled substitution counts
 //' 
 //' Computes the CTMC restricted moment matrices of labeled substitution counts 
