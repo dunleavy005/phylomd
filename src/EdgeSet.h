@@ -2,7 +2,6 @@
 #define PHYLOMD_EDGESET_H_
 
 #include <algorithm>
-#include <utility>
 
 #include "phylomd_types.h"
 
@@ -19,8 +18,7 @@ class EdgeSet {
   Vector<int> elems_;
 
  public:
-  EdgeSet(int label, Vector<int>&& elems)
-      : label_(label), elems_(std::move(elems)) {
+  EdgeSet(int label, const Vector<int>& elems) : label_(label), elems_(elems) {
     for (auto& elem : elems_) elem -= 1;
     std::sort(elems_.begin(), elems_.end());
   }
@@ -50,7 +48,7 @@ inline bool operator!=(const EdgeSet& lhs, const EdgeSet& rhs) {
 }
 
 
-Vector<EdgeSet> create_edge_sets(VectorVector<int>& esets_inp);
+Vector<EdgeSet> create_edge_sets(const VectorVector<int>& esets_inp);
 
 
 #endif  // PHYLOMD_EDGESET_H_

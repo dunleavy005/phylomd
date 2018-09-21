@@ -88,7 +88,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // phylo_nsubs_moments
-Map<std::string, double> phylo_nsubs_moments(const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::mat& L, VectorVector<int> edge_sets, int max_order, const std::vector<std::string>& tip_states);
+Map<std::string, double> phylo_nsubs_moments(const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::mat& L, const VectorVector<int>& edge_sets, int max_order, const std::vector<std::string>& tip_states);
 RcppExport SEXP _phylomd_phylo_nsubs_moments(SEXP treeSEXP, SEXP subst_modSEXP, SEXP LSEXP, SEXP edge_setsSEXP, SEXP max_orderSEXP, SEXP tip_statesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -96,7 +96,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Rcpp::List& >::type tree(treeSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type subst_mod(subst_modSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type L(LSEXP);
-    Rcpp::traits::input_parameter< VectorVector<int> >::type edge_sets(edge_setsSEXP);
+    Rcpp::traits::input_parameter< const VectorVector<int>& >::type edge_sets(edge_setsSEXP);
     Rcpp::traits::input_parameter< int >::type max_order(max_orderSEXP);
     Rcpp::traits::input_parameter< const std::vector<std::string>& >::type tip_states(tip_statesSEXP);
     rcpp_result_gen = Rcpp::wrap(phylo_nsubs_moments(tree, subst_mod, L, edge_sets, max_order, tip_states));
@@ -104,7 +104,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // phylo_reward_moments
-Map<std::string, double> phylo_reward_moments(const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::vec& w, VectorVector<int> edge_sets, int max_order, const std::vector<std::string>& tip_states);
+Map<std::string, double> phylo_reward_moments(const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::vec& w, const VectorVector<int>& edge_sets, int max_order, const std::vector<std::string>& tip_states);
 RcppExport SEXP _phylomd_phylo_reward_moments(SEXP treeSEXP, SEXP subst_modSEXP, SEXP wSEXP, SEXP edge_setsSEXP, SEXP max_orderSEXP, SEXP tip_statesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -112,7 +112,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Rcpp::List& >::type tree(treeSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type subst_mod(subst_modSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
-    Rcpp::traits::input_parameter< VectorVector<int> >::type edge_sets(edge_setsSEXP);
+    Rcpp::traits::input_parameter< const VectorVector<int>& >::type edge_sets(edge_setsSEXP);
     Rcpp::traits::input_parameter< int >::type max_order(max_orderSEXP);
     Rcpp::traits::input_parameter< const std::vector<std::string>& >::type tip_states(tip_statesSEXP);
     rcpp_result_gen = Rcpp::wrap(phylo_reward_moments(tree, subst_mod, w, edge_sets, max_order, tip_states));

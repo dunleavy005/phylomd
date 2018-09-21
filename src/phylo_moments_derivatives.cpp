@@ -88,8 +88,8 @@ int get_connected_counting_coef(const FlatMomentDerivativeID& flat_md_id,
 Map<std::string, double> phylo_moments_derivatives(
     arma::imat& edge, const Vector<std::string>& tip_labels, int num_int_nodes,
     const arma::vec& edge_lengths, const arma::mat& Q, const arma::mat& B,
-    const arma::vec& pi, VectorVector<int>& esets_inp, int max_order, Mode mode,
-    const arma::ivec& tip_data) {
+    const arma::vec& pi, const VectorVector<int>& esets_inp, int max_order,
+    Mode mode, const arma::ivec& tip_data) {
   // Modify the edge matrix and create some useful variables.
   edge -= 1;
   int num_edges = edge.n_rows;
@@ -228,7 +228,6 @@ double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,
   const Vector<std::string>& states = subst_mod["states"];
   const arma::mat& Q = subst_mod["Q"];
   const arma::vec& pi = subst_mod["pi"];
-  VectorVector<int> edge_sets;
 
   if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
@@ -241,9 +240,9 @@ double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,
     tip_data(i) = (find_it != states.end()) ? find_it - states.begin() : -1;
   }
 
-  return phylo_moments_derivatives(edge, tip_labels, num_int_nodes,
-                                   edge_lengths, Q, arma::mat(), pi, edge_sets,
-                                   0, Mode::T_DERIVATIVES, tip_data)
+  return phylo_moments_derivatives(
+             edge, tip_labels, num_int_nodes, edge_lengths, Q, arma::mat(), pi,
+             VectorVector<int>(), 0, Mode::T_DERIVATIVES, tip_data)
       .at("");
 }
 
@@ -297,7 +296,7 @@ double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,
 // [[Rcpp::export(name = "phylo.nsubs.moments")]]
 Map<std::string, double> phylo_nsubs_moments(
     const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::mat& L,
-    VectorVector<int> edge_sets, int max_order,
+    const VectorVector<int>& edge_sets, int max_order,
     const std::vector<std::string>& tip_states) {
   if (!tree.inherits("phylo"))
     Rcpp::stop("'tree' must be an object of class 'phylo'.");
@@ -404,7 +403,7 @@ Map<std::string, double> phylo_nsubs_moments(
 // [[Rcpp::export(name = "phylo.reward.moments")]]
 Map<std::string, double> phylo_reward_moments(
     const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::vec& w,
-    VectorVector<int> edge_sets, int max_order,
+    const VectorVector<int>& edge_sets, int max_order,
     const std::vector<std::string>& tip_states) {
   if (!tree.inherits("phylo"))
     Rcpp::stop("'tree' must be an object of class 'phylo'.");
