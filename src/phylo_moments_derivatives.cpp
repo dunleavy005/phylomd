@@ -86,12 +86,11 @@ int get_connected_counting_coef(const FlatMomentDerivativeID& flat_md_id,
 
 
 Map<std::string, double> phylo_moments_derivatives(
-    arma::imat& edge, const Vector<std::string>& tip_labels, int num_int_nodes,
-    const arma::vec& edge_lengths, const arma::mat& Q, const arma::mat& B,
-    const arma::vec& pi, const VectorVector<int>& esets_inp, int max_order,
-    Mode mode, const arma::ivec& tip_data) {
-  // Modify the edge matrix and create some useful variables.
-  edge -= 1;
+    const arma::imat& edge, const Vector<std::string>& tip_labels,
+    int num_int_nodes, const arma::vec& edge_lengths, const arma::mat& Q,
+    const arma::mat& B, const arma::vec& pi, const VectorVector<int>& esets_inp,
+    int max_order, Mode mode, const arma::ivec& tip_data) {
+  // Create some useful variables.
   int num_edges = edge.n_rows;
   int num_term_nodes = tip_labels.size();
   int root_node_ind = num_term_nodes;
@@ -222,6 +221,7 @@ double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,
     Rcpp::stop("'subst_mod' must be an object of class 'substitution.model'.");
 
   arma::imat edge = tree["edge"];
+  edge -= 1;
   const Vector<std::string>& tip_labels = tree["tip.label"];
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
@@ -229,7 +229,7 @@ double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,
   const arma::mat& Q = subst_mod["Q"];
   const arma::vec& pi = subst_mod["pi"];
 
-  if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
   if (tip_states.size() != tip_labels.size())
     Rcpp::stop("'tip_states' must be compatible with 'tree'.");
@@ -296,7 +296,7 @@ double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,
 // [[Rcpp::export(name = "phylo.nsubs.moments")]]
 Map<std::string, double> phylo_nsubs_moments(
     const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::mat& L,
-    const VectorVector<int>& edge_sets, int max_order,
+    VectorVector<int> edge_sets, int max_order,
     const std::vector<std::string>& tip_states) {
   if (!tree.inherits("phylo"))
     Rcpp::stop("'tree' must be an object of class 'phylo'.");
@@ -313,6 +313,7 @@ Map<std::string, double> phylo_nsubs_moments(
   if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
 
   arma::imat edge = tree["edge"];
+  edge -= 1;
   const Vector<std::string>& tip_labels = tree["tip.label"];
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
@@ -320,14 +321,15 @@ Map<std::string, double> phylo_nsubs_moments(
   const arma::mat& Q = subst_mod["Q"];
   const arma::vec& pi = subst_mod["pi"];
 
-  if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
   if (arma::size(Q) != arma::size(L))
     Rcpp::stop("The rate matrix and 'L' must have the same dimensions.");
-  for (const auto& edge_set : edge_sets) {
-    for (auto edge_label : edge_set) {
+  for (auto& edge_set : edge_sets) {
+    for (auto& edge_label : edge_set) {
       if (edge_label < 1 || edge_label > (int)edge.n_rows)
         Rcpp::stop("'edge_sets' must contain valid edges.");
+      edge_label -= 1;
     }
   }
   if (tip_states.size() != tip_labels.size())
@@ -403,7 +405,7 @@ Map<std::string, double> phylo_nsubs_moments(
 // [[Rcpp::export(name = "phylo.reward.moments")]]
 Map<std::string, double> phylo_reward_moments(
     const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::vec& w,
-    const VectorVector<int>& edge_sets, int max_order,
+    VectorVector<int> edge_sets, int max_order,
     const std::vector<std::string>& tip_states) {
   if (!tree.inherits("phylo"))
     Rcpp::stop("'tree' must be an object of class 'phylo'.");
@@ -417,6 +419,7 @@ Map<std::string, double> phylo_reward_moments(
   if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
 
   arma::imat edge = tree["edge"];
+  edge -= 1;
   const Vector<std::string>& tip_labels = tree["tip.label"];
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
@@ -424,14 +427,15 @@ Map<std::string, double> phylo_reward_moments(
   const arma::mat& Q = subst_mod["Q"];
   const arma::vec& pi = subst_mod["pi"];
 
-  if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
   if (Q.n_rows != w.n_elem)
     Rcpp::stop("The rate matrix and 'w' must have compatible dimensions.");
-  for (const auto& edge_set : edge_sets) {
-    for (auto edge_label : edge_set) {
+  for (auto& edge_set : edge_sets) {
+    for (auto& edge_label : edge_set) {
       if (edge_label < 1 || edge_label > (int)edge.n_rows)
         Rcpp::stop("'edge_sets' must contain valid edges.");
+      edge_label -= 1;
     }
   }
   if (tip_states.size() != tip_labels.size())
@@ -512,6 +516,7 @@ Map<std::string, double> phylo_Q_derivatives(
   if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
 
   arma::imat edge = tree["edge"];
+  edge -= 1;
   const Vector<std::string>& tip_labels = tree["tip.label"];
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
@@ -520,7 +525,7 @@ Map<std::string, double> phylo_Q_derivatives(
   const arma::vec& pi = subst_mod["pi"];
   std::string d_param_name = "d_" + param_name;
 
-  if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
   if (!subst_mod.containsElementNamed(d_param_name.c_str()))
     Rcpp::stop("'param_name' is not a valid 'subst_mod' parameter name.");
@@ -531,7 +536,7 @@ Map<std::string, double> phylo_Q_derivatives(
   VectorVector<int> edge_sets(1);
   edge_sets[0].reserve(edge.n_rows);
   for (std::size_t edge_label = 1; edge_label <= edge.n_rows; ++edge_label) {
-    edge_sets[0].push_back(edge_label);
+    edge_sets[0].push_back(edge_label - 1);
   }
 
   arma::ivec tip_data(tip_states.size(), arma::fill::none);
@@ -602,6 +607,7 @@ Map<std::string, double> phylo_t_derivatives(
   if (max_order < 0) Rcpp::stop("'max_order' cannot be less than 0.");
 
   arma::imat edge = tree["edge"];
+  edge -= 1;
   const Vector<std::string>& tip_labels = tree["tip.label"];
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
@@ -609,7 +615,7 @@ Map<std::string, double> phylo_t_derivatives(
   const arma::mat& Q = subst_mod["Q"];
   const arma::vec& pi = subst_mod["pi"];
 
-  if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
   if (tip_states.size() != tip_labels.size())
     Rcpp::stop("'tip_states' must be compatible with 'tree'.");
@@ -617,7 +623,7 @@ Map<std::string, double> phylo_t_derivatives(
   VectorVector<int> edge_sets(edge.n_rows);
   for (std::size_t edge_label = 1; edge_label <= edge.n_rows; ++edge_label) {
     edge_sets[edge_label - 1].reserve(1);
-    edge_sets[edge_label - 1].push_back(edge_label);
+    edge_sets[edge_label - 1].push_back(edge_label - 1);
   }
 
   arma::ivec tip_data(tip_states.size(), arma::fill::none);

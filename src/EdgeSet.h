@@ -19,7 +19,6 @@ class EdgeSet {
 
  public:
   EdgeSet(int label, const Vector<int>& elems) : label_(label), elems_(elems) {
-    for (auto& elem : elems_) elem -= 1;
     std::sort(elems_.begin(), elems_.end());
   }
 

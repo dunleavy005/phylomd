@@ -31,10 +31,10 @@ int get_connected_counting_coef(const FlatMomentDerivativeID& flat_md_id,
 
 
 Map<std::string, double> phylo_moments_derivatives(
-    arma::imat& edge, const Vector<std::string>& tip_labels, int num_int_nodes,
-    const arma::vec& edge_lengths, const arma::mat& Q, const arma::mat& B,
-    const arma::vec& pi, const VectorVector<int>& esets_inp, int max_order,
-    Mode mode, const arma::ivec& tip_data);
+    const arma::imat& edge, const Vector<std::string>& tip_labels,
+    int num_int_nodes, const arma::vec& edge_lengths, const arma::mat& Q,
+    const arma::mat& B, const arma::vec& pi, const VectorVector<int>& esets_inp,
+    int max_order, Mode mode, const arma::ivec& tip_data);
 
 
 double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,
@@ -43,13 +43,13 @@ double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,
 
 Map<std::string, double> phylo_nsubs_moments(
     const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::mat& L,
-    const VectorVector<int>& edge_sets, int max_order,
+    VectorVector<int> edge_sets, int max_order,
     const Vector<std::string>& tip_states);
 
 
 Map<std::string, double> phylo_reward_moments(
     const Rcpp::List& tree, const Rcpp::List& subst_mod, const arma::vec& w,
-    const VectorVector<int>& edge_sets, int max_order,
+    VectorVector<int> edge_sets, int max_order,
     const Vector<std::string>& tip_states);
 
 

@@ -55,12 +55,11 @@ Rcpp::DataFrame ctmc_sim_aux(double t, const Vector<std::string>& states,
 
 
 std::pair<Vector<std::string>, Vector<int>> asr_sim_aux(
-    arma::imat& edge, const Vector<std::string>& tip_labels, int num_int_nodes,
-    const arma::vec& edge_lengths, const Vector<std::string>& states,
-    const arma::mat& Q, const arma::vec& pi, const Vector<int>& state_inds,
-    const arma::ivec& tip_data) {
-  // Modify the edge matrix and create some useful variables.
-  edge -= 1;
+    const arma::imat& edge, const Vector<std::string>& tip_labels,
+    int num_int_nodes, const arma::vec& edge_lengths,
+    const Vector<std::string>& states, const arma::mat& Q, const arma::vec& pi,
+    const Vector<int>& state_inds, const arma::ivec& tip_data) {
+  // Create some useful variables.
   int num_edges = edge.n_rows;
   int num_term_nodes = tip_labels.size();
   int root_node_ind = num_term_nodes;
@@ -207,6 +206,7 @@ std::vector<std::string> asr_sim(const Rcpp::List& tree,
     Rcpp::stop("'subst_mod' must be an object of class 'substitution.model'.");
 
   arma::imat edge = tree["edge"];
+  edge -= 1;
   const Vector<std::string>& tip_labels = tree["tip.label"];
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
@@ -219,7 +219,7 @@ std::vector<std::string> asr_sim(const Rcpp::List& tree,
     state_inds.push_back(state_ind);
   }
 
-  if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
   if (tip_states.size() != tip_labels.size())
     Rcpp::stop("'tip_states' must be compatible with 'tree'.");
@@ -275,10 +275,11 @@ std::vector<Rcpp::DataFrame> smap_sim(
     Rcpp::stop("'subst_mod' must be an object of class 'substitution.model'.");
 
   arma::imat edge = tree["edge"];
+  edge -= 1;
+  int num_edges = edge.n_rows;
   const Vector<std::string>& tip_labels = tree["tip.label"];
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
-  int num_edges = edge.n_rows;
   const Vector<std::string>& states = subst_mod["states"];
   const arma::mat& Q = subst_mod["Q"];
   const arma::vec& pi = subst_mod["pi"];
@@ -288,7 +289,7 @@ std::vector<Rcpp::DataFrame> smap_sim(
     state_inds.push_back(state_ind);
   }
 
-  if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
   if (tip_states.size() != tip_labels.size())
     Rcpp::stop("'tip_states' must be compatible with 'tree'.");
@@ -357,13 +358,13 @@ std::vector<std::string> tips_sim(const Rcpp::List& tree,
     Rcpp::stop("'subst_mod' must be an object of class 'substitution.model'.");
 
   arma::imat edge = tree["edge"];
-  const Vector<std::string>& tip_labels = tree["tip.label"];
-  int num_int_nodes = tree["Nnode"];
-  const arma::vec& edge_lengths = tree["edge.length"];
   edge -= 1;
   int num_edges = edge.n_rows;
+  const Vector<std::string>& tip_labels = tree["tip.label"];
   int num_term_nodes = tip_labels.size();
   int root_node_ind = num_term_nodes;
+  int num_int_nodes = tree["Nnode"];
+  const arma::vec& edge_lengths = tree["edge.length"];
   const Vector<std::string>& states = subst_mod["states"];
   const arma::mat& Q = subst_mod["Q"];
   arma::vec pi = subst_mod["pi"];
@@ -373,7 +374,7 @@ std::vector<std::string> tips_sim(const Rcpp::List& tree,
     state_inds.push_back(state_ind);
   }
 
-  if (arma::find(edge.col(0) == tip_labels.size() + 1).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == root_node_ind).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
 
   // Initialize the storage of the observed tip states.
