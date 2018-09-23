@@ -13,8 +13,8 @@
 arma::cube ctmc_moments_Q_derivatives_aux(double t, const arma::mat& Q,
                                           const arma::mat& B, int max_order,
                                           Mode mode) {
-  // Compute either CTMC moments or CTMC rate matrix derivatives associated with
-  // the branch length `t`.
+  // Compute either CTMC restricted moments or CTMC transition probability
+  // derivatives with respect to rate matrix parameters.
   arma::cube ctmc_mds(Q.n_rows, Q.n_cols, max_order + 1, arma::fill::zeros);
 
   // Initialize the counting tables.
@@ -45,8 +45,8 @@ arma::cube ctmc_moments_Q_derivatives_aux(double t, const arma::mat& Q,
   arma::cube integrals(integrals_mat.begin(), Q.n_rows, Q.n_cols,
                        max_order + 1);
 
-  // Store the zeroth CTMC moment or rate matrix derivative (i.e. the transition
-  // probability matrix).
+  // Store the zeroth CTMC restricted moment or transition probability
+  // derivative (i.e. the transition probability matrix).
   ctmc_mds.slice(0) = std::move(integrals.slice(0));
 
   for (int i = 1; i < max_order + 1; ++i) {
@@ -73,12 +73,12 @@ arma::cube ctmc_moments_Q_derivatives_aux(double t, const arma::mat& Q,
 
 
 arma::cube ctmc_t_derivatives_aux(double t, const arma::mat& Q, int max_order) {
-  // Compute CTMC branch length derivatives associated with the branch length
-  // `t`.
+  // Compute CTMC transition probability derivatives with respect to the time
+  // interval length.
   arma::cube ctmc_ds(Q.n_rows, Q.n_cols, max_order + 1, arma::fill::zeros);
 
-  // Store the zeroth CTMC branch length derivative (i.e. the transition
-  // probability matrix).
+  // Store the zeroth CTMC transition probability derivative (i.e. the
+  // transition probability matrix).
   ctmc_ds.slice(0) = arma::expmat(Q * t);
 
   for (int i = 1; i < max_order + 1; ++i) {
