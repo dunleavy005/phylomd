@@ -14,13 +14,11 @@ void partition_edge_sets_aux(const Vector<EdgeSet>& esets, std::size_t curr_ind,
                              const Vector<int>& curr_label,
                              const Vector<int>& curr_elems,
                              Vector<PartitionSet>& psets) {
-  // 1) If the current partitioned set is empty, we can exit the function.
-  // Otherwise, the current partitioned set is non-empty.
-  // 2) Furthermore, if we have traversed over all the edge sets, cache the
-  // current partitioned edge set and exit the function.
-  if (curr_elems.empty()) {
-    return;
-  } else if (curr_ind == esets.size()) {
+  // If the current partitioned set is empty, we can exit the function.
+  // If we have traversed over all the edge sets, cache the current partitioned
+  // edge set and exit the function.
+  if (curr_elems.empty()) return;
+  if (curr_ind == esets.size()) {
     psets.emplace_back(curr_label, curr_elems);
     return;
   }

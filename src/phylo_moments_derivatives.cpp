@@ -4,6 +4,9 @@
 #include <cstddef>
 #include <utility>
 
+#include "EdgeList.h"
+#include "NodeList.h"
+#include "PartitionSet.h"
 #include "counting_tables.h"
 #include "postorder_traverse.h"
 
