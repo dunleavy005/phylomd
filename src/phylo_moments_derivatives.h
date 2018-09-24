@@ -31,10 +31,11 @@ int get_connected_counting_coef(const FlatMomentDerivativeID& flat_md_id,
 
 
 Map<std::string, double> phylo_moments_derivatives(
-    const arma::imat& edge, const Vector<std::string>& tip_labels,
-    int num_int_nodes, const arma::vec& edge_lengths, const arma::mat& Q,
-    const arma::mat& B, const arma::vec& pi, const VectorVector<int>& esets_inp,
-    int max_order, Mode mode, const arma::ivec& tip_data);
+    const arma::imat& edge, int num_edges, int num_term_nodes,
+    int root_node_ind, int num_int_nodes, const arma::vec& edge_lengths,
+    const arma::mat& Q, const arma::vec& pi, const arma::mat& B,
+    const VectorVector<int>& esets_inp, int max_order, Mode mode,
+    const arma::ivec& tip_data);
 
 
 double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,

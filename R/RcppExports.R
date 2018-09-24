@@ -187,8 +187,7 @@ ctmc.t.derivatives <- function(t, subst_mod, max_order) {
 #' @param subst_mod An S3 object of class \code{"substitution.model"}.
 #' @param tip_states A character vector of observed tip states.
 #'   
-#' @return A numeric vector of length one that holds the phylogenetic 
-#'   likelihood.
+#' @return A double-precision value that holds the phylogenetic likelihood.
 #'   
 #' @references Felsenstein J (1981) \dQuote{Evolutionary Trees from DNA 
 #'   Sequences: A Maximum Likelihood Approach}, \emph{Journal of Molecular 

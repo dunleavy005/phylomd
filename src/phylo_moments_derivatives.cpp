@@ -86,15 +86,11 @@ int get_connected_counting_coef(const FlatMomentDerivativeID& flat_md_id,
 
 
 Map<std::string, double> phylo_moments_derivatives(
-    const arma::imat& edge, const Vector<std::string>& tip_labels,
-    int num_int_nodes, const arma::vec& edge_lengths, const arma::mat& Q,
-    const arma::mat& B, const arma::vec& pi, const VectorVector<int>& esets_inp,
-    int max_order, Mode mode, const arma::ivec& tip_data) {
-  // Create some useful variables.
-  int num_edges = edge.n_rows;
-  int num_term_nodes = tip_labels.size();
-  int root_node_ind = num_term_nodes;
-
+    const arma::imat& edge, int num_edges, int num_term_nodes,
+    int root_node_ind, int num_int_nodes, const arma::vec& edge_lengths,
+    const arma::mat& Q, const arma::vec& pi, const arma::mat& B,
+    const VectorVector<int>& esets_inp, int max_order, Mode mode,
+    const arma::ivec& tip_data) {
   // Initialize the counting table.
   // Initialize the storage of the CTMC moments/derivatives at each edge.
   arma::mat choose = choose_table(max_order);
@@ -141,8 +137,8 @@ Map<std::string, double> phylo_moments_derivatives(
   }
 
   // Perform the postorder recursion.
-  postorder_traverse(edge, edge_lengths, Q, B, max_order, mode, tip_data,
-                     edge_psets, num_edges, num_term_nodes, root_node_ind,
+  postorder_traverse(edge, num_edges, num_term_nodes, root_node_ind,
+                     edge_lengths, Q, B, edge_psets, max_order, mode, tip_data,
                      edges_mds, nlists, elists);
 
   // Calculate the moments/derivatives.
@@ -197,8 +193,7 @@ Map<std::string, double> phylo_moments_derivatives(
 //' @param subst_mod An S3 object of class \code{"substitution.model"}.
 //' @param tip_states A character vector of observed tip states.
 //'   
-//' @return A numeric vector of length one that holds the phylogenetic 
-//'   likelihood.
+//' @return A double-precision value that holds the phylogenetic likelihood.
 //'   
 //' @references Felsenstein J (1981) \dQuote{Evolutionary Trees from DNA 
 //'   Sequences: A Maximum Likelihood Approach}, \emph{Journal of Molecular 
@@ -222,16 +217,19 @@ double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,
 
   arma::imat edge = tree["edge"];
   edge -= 1;
+  int num_edges = edge.n_rows;
   const Vector<std::string>& tip_labels = tree["tip.label"];
+  int num_term_nodes = tip_labels.size();
+  int root_node_ind = num_term_nodes;
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
   const Vector<std::string>& states = subst_mod["states"];
   const arma::mat& Q = subst_mod["Q"];
   const arma::vec& pi = subst_mod["pi"];
 
-  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == root_node_ind).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
-  if (tip_states.size() != tip_labels.size())
+  if ((int)tip_states.size() != num_term_nodes)
     Rcpp::stop("'tip_states' must be compatible with 'tree'.");
 
   arma::ivec tip_data(tip_states.size(), arma::fill::none);
@@ -240,9 +238,10 @@ double phylo_likelihood(const Rcpp::List& tree, const Rcpp::List& subst_mod,
     tip_data(i) = (find_it != states.end()) ? find_it - states.begin() : -1;
   }
 
-  return phylo_moments_derivatives(
-             edge, tip_labels, num_int_nodes, edge_lengths, Q, arma::mat(), pi,
-             VectorVector<int>(), 0, Mode::T_DERIVATIVES, tip_data)
+  return phylo_moments_derivatives(edge, num_edges, num_term_nodes,
+                                   root_node_ind, num_int_nodes, edge_lengths,
+                                   Q, pi, arma::mat(), VectorVector<int>(), 0,
+                                   Mode::T_DERIVATIVES, tip_data)
       .at("");
 }
 
@@ -314,25 +313,28 @@ Map<std::string, double> phylo_nsubs_moments(
 
   arma::imat edge = tree["edge"];
   edge -= 1;
+  int num_edges = edge.n_rows;
   const Vector<std::string>& tip_labels = tree["tip.label"];
+  int num_term_nodes = tip_labels.size();
+  int root_node_ind = num_term_nodes;
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
   const Vector<std::string>& states = subst_mod["states"];
   const arma::mat& Q = subst_mod["Q"];
   const arma::vec& pi = subst_mod["pi"];
 
-  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == root_node_ind).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
   if (arma::size(Q) != arma::size(L))
     Rcpp::stop("The rate matrix and 'L' must have the same dimensions.");
   for (auto& edge_set : edge_sets) {
     for (auto& edge_label : edge_set) {
-      if (edge_label < 1 || edge_label > (int)edge.n_rows)
+      if (edge_label < 1 || edge_label > num_edges)
         Rcpp::stop("'edge_sets' must contain valid edges.");
       edge_label -= 1;
     }
   }
-  if (tip_states.size() != tip_labels.size())
+  if ((int)tip_states.size() != num_term_nodes)
     Rcpp::stop("'tip_states' must be compatible with 'tree'.");
 
   arma::ivec tip_data(tip_states.size(), arma::fill::none);
@@ -343,8 +345,9 @@ Map<std::string, double> phylo_nsubs_moments(
 
   // Divide the computed moments by the likelihood.
   Map<std::string, double> moments = phylo_moments_derivatives(
-      edge, tip_labels, num_int_nodes, edge_lengths, Q, Q % L, pi, edge_sets,
-      max_order, Mode::NSUBS_MOMENTS, tip_data);
+      edge, num_edges, num_term_nodes, root_node_ind, num_int_nodes,
+      edge_lengths, Q, pi, Q % L, edge_sets, max_order, Mode::NSUBS_MOMENTS,
+      tip_data);
   double likelihood = moments.at("");
 
   for (auto it = moments.begin(); it != moments.end(); ++it) {
@@ -420,25 +423,28 @@ Map<std::string, double> phylo_reward_moments(
 
   arma::imat edge = tree["edge"];
   edge -= 1;
+  int num_edges = edge.n_rows;
   const Vector<std::string>& tip_labels = tree["tip.label"];
+  int num_term_nodes = tip_labels.size();
+  int root_node_ind = num_term_nodes;
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
   const Vector<std::string>& states = subst_mod["states"];
   const arma::mat& Q = subst_mod["Q"];
   const arma::vec& pi = subst_mod["pi"];
 
-  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == root_node_ind).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
   if (Q.n_rows != w.n_elem)
     Rcpp::stop("The rate matrix and 'w' must have compatible dimensions.");
   for (auto& edge_set : edge_sets) {
     for (auto& edge_label : edge_set) {
-      if (edge_label < 1 || edge_label > (int)edge.n_rows)
+      if (edge_label < 1 || edge_label > num_edges)
         Rcpp::stop("'edge_sets' must contain valid edges.");
       edge_label -= 1;
     }
   }
-  if (tip_states.size() != tip_labels.size())
+  if ((int)tip_states.size() != num_term_nodes)
     Rcpp::stop("'tip_states' must be compatible with 'tree'.");
 
   arma::ivec tip_data(tip_states.size(), arma::fill::none);
@@ -449,8 +455,9 @@ Map<std::string, double> phylo_reward_moments(
 
   // Divide the computed moments by the likelihood.
   Map<std::string, double> moments = phylo_moments_derivatives(
-      edge, tip_labels, num_int_nodes, edge_lengths, Q, arma::diagmat(w), pi,
-      edge_sets, max_order, Mode::REWARD_MOMENTS, tip_data);
+      edge, num_edges, num_term_nodes, root_node_ind, num_int_nodes,
+      edge_lengths, Q, pi, arma::diagmat(w), edge_sets, max_order,
+      Mode::REWARD_MOMENTS, tip_data);
   double likelihood = moments.at("");
 
   for (auto it = moments.begin(); it != moments.end(); ++it) {
@@ -517,7 +524,10 @@ Map<std::string, double> phylo_Q_derivatives(
 
   arma::imat edge = tree["edge"];
   edge -= 1;
+  int num_edges = edge.n_rows;
   const Vector<std::string>& tip_labels = tree["tip.label"];
+  int num_term_nodes = tip_labels.size();
+  int root_node_ind = num_term_nodes;
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
   const Vector<std::string>& states = subst_mod["states"];
@@ -525,17 +535,17 @@ Map<std::string, double> phylo_Q_derivatives(
   const arma::vec& pi = subst_mod["pi"];
   std::string d_param_name = "d_" + param_name;
 
-  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == root_node_ind).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
   if (!subst_mod.containsElementNamed(d_param_name.c_str()))
     Rcpp::stop("'param_name' is not a valid 'subst_mod' parameter name.");
-  if (tip_states.size() != tip_labels.size())
+  if ((int)tip_states.size() != num_term_nodes)
     Rcpp::stop("'tip_states' must be compatible with 'tree'.");
 
   const arma::mat& dQ = subst_mod[d_param_name];
   VectorVector<int> edge_sets(1);
-  edge_sets[0].reserve(edge.n_rows);
-  for (std::size_t edge_label = 1; edge_label <= edge.n_rows; ++edge_label) {
+  edge_sets[0].reserve(num_edges);
+  for (int edge_label = 1; edge_label <= num_edges; ++edge_label) {
     edge_sets[0].push_back(edge_label - 1);
   }
 
@@ -545,9 +555,10 @@ Map<std::string, double> phylo_Q_derivatives(
     tip_data(i) = (find_it != states.end()) ? find_it - states.begin() : -1;
   }
 
-  return phylo_moments_derivatives(edge, tip_labels, num_int_nodes,
-                                   edge_lengths, Q, dQ, pi, edge_sets,
-                                   max_order, Mode::Q_DERIVATIVES, tip_data);
+  return phylo_moments_derivatives(edge, num_edges, num_term_nodes,
+                                   root_node_ind, num_int_nodes, edge_lengths,
+                                   Q, pi, dQ, edge_sets, max_order,
+                                   Mode::Q_DERIVATIVES, tip_data);
 }
 
 
@@ -608,20 +619,23 @@ Map<std::string, double> phylo_t_derivatives(
 
   arma::imat edge = tree["edge"];
   edge -= 1;
+  int num_edges = edge.n_rows;
   const Vector<std::string>& tip_labels = tree["tip.label"];
+  int num_term_nodes = tip_labels.size();
+  int root_node_ind = num_term_nodes;
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
   const Vector<std::string>& states = subst_mod["states"];
   const arma::mat& Q = subst_mod["Q"];
   const arma::vec& pi = subst_mod["pi"];
 
-  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == root_node_ind).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
-  if (tip_states.size() != tip_labels.size())
+  if ((int)tip_states.size() != num_term_nodes)
     Rcpp::stop("'tip_states' must be compatible with 'tree'.");
 
-  VectorVector<int> edge_sets(edge.n_rows);
-  for (std::size_t edge_label = 1; edge_label <= edge.n_rows; ++edge_label) {
+  VectorVector<int> edge_sets(num_edges);
+  for (int edge_label = 1; edge_label <= num_edges; ++edge_label) {
     edge_sets[edge_label - 1].reserve(1);
     edge_sets[edge_label - 1].push_back(edge_label - 1);
   }
@@ -632,7 +646,8 @@ Map<std::string, double> phylo_t_derivatives(
     tip_data(i) = (find_it != states.end()) ? find_it - states.begin() : -1;
   }
 
-  return phylo_moments_derivatives(edge, tip_labels, num_int_nodes,
-                                   edge_lengths, Q, arma::mat(), pi, edge_sets,
-                                   max_order, Mode::T_DERIVATIVES, tip_data);
+  return phylo_moments_derivatives(edge, num_edges, num_term_nodes,
+                                   root_node_ind, num_int_nodes, edge_lengths,
+                                   Q, pi, arma::mat(), edge_sets, max_order,
+                                   Mode::T_DERIVATIVES, tip_data);
 }

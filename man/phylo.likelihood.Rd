@@ -14,8 +14,7 @@ phylo.likelihood(tree, subst_mod, tip_states)
 \item{tip_states}{A character vector of observed tip states.}
 }
 \value{
-A numeric vector of length one that holds the phylogenetic 
-  likelihood.
+A double-precision value that holds the phylogenetic likelihood.
 }
 \description{
 Computes the phylogenetic likelihood.

@@ -20,7 +20,7 @@
 
 
 Rcpp::DataFrame ctmc_sim_aux(double t, const Vector<std::string>& states,
-                             const arma::mat& Q, const Vector<int>& state_inds,
+                             const Vector<int>& state_inds, const arma::mat& Q,
                              int init_state_ind) {
   // Initialize the CTMC simulation process.
   Vector<double> sim_times = {0.0};
@@ -55,15 +55,10 @@ Rcpp::DataFrame ctmc_sim_aux(double t, const Vector<std::string>& states,
 
 
 std::pair<Vector<std::string>, Vector<int>> asr_sim_aux(
-    const arma::imat& edge, const Vector<std::string>& tip_labels,
-    int num_int_nodes, const arma::vec& edge_lengths,
-    const Vector<std::string>& states, const arma::mat& Q, const arma::vec& pi,
-    const Vector<int>& state_inds, const arma::ivec& tip_data) {
-  // Create some useful variables.
-  int num_edges = edge.n_rows;
-  int num_term_nodes = tip_labels.size();
-  int root_node_ind = num_term_nodes;
-
+    const arma::imat& edge, int num_edges, int num_term_nodes,
+    int root_node_ind, int num_int_nodes, const arma::vec& edge_lengths,
+    const Vector<std::string>& states, const Vector<int>& state_inds,
+    const arma::mat& Q, const arma::vec& pi, const arma::ivec& tip_data) {
   // Initialize the storage of the CTMC transition probability matrix at each
   // edge.
   Vector<arma::cube> edges_tpm(num_edges);
@@ -78,9 +73,10 @@ std::pair<Vector<std::string>, Vector<int>> asr_sim_aux(
       EdgeList(list_ids[0], list_ids, choose, Q.n_rows, num_edges)};
 
   // Perform the postorder recursion.
-  postorder_traverse(edge, edge_lengths, Q, arma::mat(), 0, Mode::T_DERIVATIVES,
-                     tip_data, Map<int, const PartitionSet&>(), num_edges,
-                     num_term_nodes, root_node_ind, edges_tpm, nlists, elists);
+  postorder_traverse(edge, num_edges, num_term_nodes, root_node_ind,
+                     edge_lengths, Q, arma::mat(),
+                     Map<int, const PartitionSet&>(), 0, Mode::T_DERIVATIVES,
+                     tip_data, edges_tpm, nlists, elists);
 
   // Initialize the storage of the ancestral state samples.
   Vector<std::string> asr_states(num_int_nodes + num_term_nodes);
@@ -147,22 +143,19 @@ Rcpp::DataFrame ctmc_sim(double t, const Rcpp::List& subst_mod,
     Rcpp::stop("'subst_mod' must be an object of class 'substitution.model'.");
 
   const Vector<std::string>& states = subst_mod["states"];
-  const arma::mat& Q = subst_mod["Q"];
   Vector<int> state_inds;
   state_inds.reserve(states.size());
   for (std::size_t state_ind = 0; state_ind < states.size(); ++state_ind) {
     state_inds.push_back(state_ind);
   }
+  const arma::mat& Q = subst_mod["Q"];
 
-  int init_state_ind;
   auto find_it = std::find(states.begin(), states.end(), init_state);
-  if (find_it != states.end()) {
-    init_state_ind = find_it - states.begin();
-  } else {
+  if (find_it == states.end())
     Rcpp::stop("'init_state' must be a valid state.");
-  }
+  int init_state_ind = find_it - states.begin();
 
-  return ctmc_sim_aux(t, states, Q, state_inds, init_state_ind);
+  return ctmc_sim_aux(t, states, state_inds, Q, init_state_ind);
 }
 
 
@@ -207,21 +200,24 @@ std::vector<std::string> asr_sim(const Rcpp::List& tree,
 
   arma::imat edge = tree["edge"];
   edge -= 1;
+  int num_edges = edge.n_rows;
   const Vector<std::string>& tip_labels = tree["tip.label"];
+  int num_term_nodes = tip_labels.size();
+  int root_node_ind = num_term_nodes;
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
   const Vector<std::string>& states = subst_mod["states"];
-  const arma::mat& Q = subst_mod["Q"];
-  const arma::vec& pi = subst_mod["pi"];
   Vector<int> state_inds;
   state_inds.reserve(states.size());
   for (std::size_t state_ind = 0; state_ind < states.size(); ++state_ind) {
     state_inds.push_back(state_ind);
   }
+  const arma::mat& Q = subst_mod["Q"];
+  const arma::vec& pi = subst_mod["pi"];
 
-  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == root_node_ind).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
-  if (tip_states.size() != tip_labels.size())
+  if ((int)tip_states.size() != num_term_nodes)
     Rcpp::stop("'tip_states' must be compatible with 'tree'.");
 
   arma::ivec tip_data(tip_states.size(), arma::fill::none);
@@ -230,8 +226,9 @@ std::vector<std::string> asr_sim(const Rcpp::List& tree,
     tip_data(i) = (find_it != states.end()) ? find_it - states.begin() : -1;
   }
 
-  return asr_sim_aux(edge, tip_labels, num_int_nodes, edge_lengths, states, Q,
-                     pi, state_inds, tip_data)
+  return asr_sim_aux(edge, num_edges, num_term_nodes, root_node_ind,
+                     num_int_nodes, edge_lengths, states, state_inds, Q, pi,
+                     tip_data)
       .first;
 }
 
@@ -278,20 +275,22 @@ std::vector<Rcpp::DataFrame> smap_sim(
   edge -= 1;
   int num_edges = edge.n_rows;
   const Vector<std::string>& tip_labels = tree["tip.label"];
+  int num_term_nodes = tip_labels.size();
+  int root_node_ind = num_term_nodes;
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
   const Vector<std::string>& states = subst_mod["states"];
-  const arma::mat& Q = subst_mod["Q"];
-  const arma::vec& pi = subst_mod["pi"];
   Vector<int> state_inds;
   state_inds.reserve(states.size());
   for (std::size_t state_ind = 0; state_ind < states.size(); ++state_ind) {
     state_inds.push_back(state_ind);
   }
+  const arma::mat& Q = subst_mod["Q"];
+  const arma::vec& pi = subst_mod["pi"];
 
-  if (arma::find(edge.col(0) == tip_labels.size()).eval().n_elem > 2)
+  if (arma::find(edge.col(0) == root_node_ind).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
-  if (tip_states.size() != tip_labels.size())
+  if ((int)tip_states.size() != num_term_nodes)
     Rcpp::stop("'tip_states' must be compatible with 'tree'.");
 
   arma::ivec tip_data(tip_states.size(), arma::fill::none);
@@ -304,8 +303,8 @@ std::vector<Rcpp::DataFrame> smap_sim(
   Vector<std::string> asr_states;
   Vector<int> asr_state_inds;
   std::tie(asr_states, asr_state_inds) =
-      asr_sim_aux(edge, tip_labels, num_int_nodes, edge_lengths, states, Q, pi,
-                  state_inds, tip_data);
+      asr_sim_aux(edge, num_edges, num_term_nodes, root_node_ind, num_int_nodes,
+                  edge_lengths, states, state_inds, Q, pi, tip_data);
 
   // Initialize the storage of the stochastic mapping sample.
   Vector<Rcpp::DataFrame> smap(num_edges);
@@ -316,9 +315,8 @@ std::vector<Rcpp::DataFrame> smap_sim(
     int child_node_ind = edge(edge_ind, 1);
 
     do {
-      smap[edge_ind] =
-          ctmc_sim_aux(edge_lengths(edge_ind), states, Q, state_inds,
-                       asr_state_inds[parent_node_ind]);
+      smap[edge_ind] = ctmc_sim_aux(edge_lengths(edge_ind), states, state_inds,
+                                    Q, asr_state_inds[parent_node_ind]);
     } while (Rcpp::as<Vector<std::string>>(smap[edge_ind]["state"]).back() !=
                  asr_states[child_node_ind] &&
              asr_states[child_node_ind] != "N");
@@ -366,13 +364,13 @@ std::vector<std::string> tips_sim(const Rcpp::List& tree,
   int num_int_nodes = tree["Nnode"];
   const arma::vec& edge_lengths = tree["edge.length"];
   const Vector<std::string>& states = subst_mod["states"];
-  const arma::mat& Q = subst_mod["Q"];
-  arma::vec pi = subst_mod["pi"];
   Vector<int> state_inds;
   state_inds.reserve(states.size());
   for (std::size_t state_ind = 0; state_ind < states.size(); ++state_ind) {
     state_inds.push_back(state_ind);
   }
+  const arma::mat& Q = subst_mod["Q"];
+  arma::vec pi = subst_mod["pi"];
 
   if (arma::find(edge.col(0) == root_node_ind).eval().n_elem > 2)
     Rcpp::stop("'tree' must be a rooted tree.");
