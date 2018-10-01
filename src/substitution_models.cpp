@@ -185,7 +185,7 @@ Rcpp::List K80(double alpha, double beta, bool scale = false) {
 Rcpp::List F81(double mu, const arma::vec& pi, bool scale = false) {
   if (mu < 0.0) Rcpp::stop("The rate parameter cannot be less than 0.");
   if (pi.n_elem != 4 || arma::any(pi < 0.0) ||
-      std::fabs(arma::sum(pi) - 1.0) >= arma::datum::eps)
+      std::fabs(arma::sum(pi) - 1.0) >= EPS)
     Rcpp::stop("'pi' must be an appropriate DNA frequency distribution.");
 
   // Specify the CTMC states and create the F81 rate matrix.
@@ -262,7 +262,7 @@ Rcpp::List HKY85(double alpha, double beta, const arma::vec& pi,
     if (r < 0.0) Rcpp::stop("The rate parameters cannot be less than 0.");
   }
   if (pi.n_elem != 4 || arma::any(pi < 0.0) ||
-      std::fabs(arma::sum(pi) - 1.0) >= arma::datum::eps)
+      std::fabs(arma::sum(pi) - 1.0) >= EPS)
     Rcpp::stop("'pi' must be an appropriate DNA frequency distribution.");
 
   // Specify the CTMC states and create the HKY85 rate matrix.
@@ -354,7 +354,7 @@ Rcpp::List GTR(double rAC, double rAG, double rAT, double rCG, double rCT,
     if (r < 0.0) Rcpp::stop("The rate parameters cannot be less than 0.");
   }
   if (pi.n_elem != 4 || arma::any(pi < 0.0) ||
-      std::fabs(arma::sum(pi) - 1.0) >= arma::datum::eps)
+      std::fabs(arma::sum(pi) - 1.0) >= EPS)
     Rcpp::stop("'pi' must be an appropriate DNA frequency distribution.");
 
   // Specify the CTMC states and create the GTR rate matrix.

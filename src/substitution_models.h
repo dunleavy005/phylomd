@@ -9,6 +9,9 @@
 //
 
 
+const double EPS = 1e-5;
+
+
 Rcpp::List JC69(double mu, bool scale);
 
 
