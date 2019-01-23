@@ -21,6 +21,9 @@ library(devtools)
 install_github("dunleavy005/phylomd")
 ```
 
+To install the `phylomd` package with vignettes, run `install_github("dunleavy005/phylomd", build_vignettes = TRUE)`.
+The vignettes can be accessed by executing `browseVignettes("phylomd")`.
+
 ## References
 
 1. Nielsen R (2002) "Mapping Mutations on Phylogenies", *Systematic Biology*, 51(5):729-739.
