@@ -21,10 +21,71 @@ Version: 3.4
 Hash: 27269ec5e079292fd9c5f4bc60c56a36
 Requires: lattice, nlme
 
+Package: backports
+Source: CRAN
+Version: 1.0.5
+
+Package: base64enc
+Source: CRAN
+Version: 0.1-3
+
+Package: bitops
+Source: CRAN
+Version: 1.0-6
+
+Package: caTools
+Source: CRAN
+Version: 1.17.1
+Requires: bitops
+
+Package: digest
+Source: CRAN
+Version: 0.6.9
+Hash: fd55d5a024f160fc001a5ece1e27782d
+
+Package: evaluate
+Source: CRAN
+Version: 0.10
+Requires: stringr
+
+Package: highr
+Source: CRAN
+Version: 0.6
+
+Package: htmltools
+Source: CRAN
+Version: 0.3.5
+Requires: Rcpp, digest
+
+Package: jsonlite
+Source: CRAN
+Version: 0.9.19
+Hash: 4a983f753b6e88ae0f5a6ac152d8cc32
+
+Package: knitr
+Source: CRAN
+Version: 1.15.1
+Requires: digest, evaluate, highr, markdown, stringr, yaml
+
 Package: lattice
 Source: CRAN
 Version: 0.20-34
 Hash: 4390fc5602fd36017be70a27f7123ff3
+
+Package: magrittr
+Source: CRAN
+Version: 1.5
+Hash: bdc4d48c3135e8f3b399536ddf160df4
+
+Package: markdown
+Source: CRAN
+Version: 0.8
+Requires: mime
+
+Package: mime
+Source: CRAN
+Version: 0.4
+Hash: b08c52dae92a0a11e64a4deea032ec33
 
 Package: nlme
 Source: CRAN
@@ -36,3 +97,29 @@ Package: packrat
 Source: CRAN
 Version: 0.4.8-1
 Hash: 6ad605ba7b4b476d84be6632393f5765
+
+Package: rmarkdown
+Source: CRAN
+Version: 1.4
+Requires: base64enc, caTools, evaluate, htmltools, jsonlite, knitr,
+    rprojroot, yaml
+
+Package: rprojroot
+Source: CRAN
+Version: 1.2
+Requires: backports
+
+Package: stringi
+Source: CRAN
+Version: 1.0-1
+Hash: cf342bc407bd5daec77ed1009d5244e1
+
+Package: stringr
+Source: CRAN
+Version: 1.0.0
+Hash: 2676dd5f88890910962b733b0f9540e1
+Requires: magrittr, stringi
+
+Package: yaml
+Source: CRAN
+Version: 2.1.14
